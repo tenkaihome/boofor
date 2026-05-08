@@ -1,65 +1,235 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
+import { Save, Wand2, FileText, Loader2 } from "lucide-react";
+import { saveAs } from "file-saver";
 
 export default function Home() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [isFormatting, setIsFormatting] = useState(false);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+    ],
+    content: "<p>Dán nội dung vào đây...</p>",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[60vh] max-h-[70vh] overflow-y-auto p-8 border rounded-md shadow-inner bg-white font-serif",
+      },
+    },
+  });
+
+  const formatContent = () => {
+    if (!editor) return;
+    setIsFormatting(true);
+
+    setTimeout(() => {
+      let html = editor.getHTML();
+      
+      // Sử dụng DOMParser để xử lý HTML an toàn hơn
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      // Regex phát hiện tiếng Việt (có dấu)
+      const vietnameseRegex = /[àáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũũụủưứừửữựỳýỹỷỵ]/i;
+
+      // Các cụm từ tiếng Anh vô nghĩa của AI cần xóa
+      const aiPhrases = [
+        "certainly! here is",
+        "ready for chapter",
+        "just say",
+        "would you like to continue",
+        "absolutely! below is",
+        "here is a comprehensive",
+        "congratulations! by reaching this point",
+      ];
+
+      // Lặp qua tất cả các thẻ text
+      const allElements = doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
+      
+      allElements.forEach((el) => {
+        const text = el.textContent?.trim() || "";
+        const lowerText = text.toLowerCase();
+        
+        if (!text) return; // Bỏ qua thẻ rỗng
+
+        // 1. Xóa các đoạn chứa tiếng Việt (Prompt người dùng, câu trả lời của AI bằng tiếng Việt)
+        if (vietnameseRegex.test(text)) {
+          el.remove();
+          return;
+        }
+
+        // 2. Xóa các đoạn chat bằng tiếng Anh của AI
+        const hasAiPhrase = aiPhrases.some((phrase) => lowerText.includes(phrase));
+        if (hasAiPhrase) {
+          el.remove();
+          return;
+        }
+
+        // 3. Nhận diện Chapter, Introduction, Conclusion để làm Heading và Ngắt trang
+        // Tiêu đề thường ngắn (dưới 15 từ)
+        const wordCount = text.split(/\s+/).length;
+        const isHeadingCandidate = wordCount < 15;
+        
+        const isChapterHeading = /^chapter\s+\d+/i.test(lowerText);
+        const isIntroOrConclusion = /(introduction|conclusion)/i.test(lowerText) && isHeadingCandidate;
+
+        if (isChapterHeading || isIntroOrConclusion) {
+          // Ép kiểu thành Heading 1 nếu chưa phải
+          let headingEl = el;
+          if (!["H1", "H2", "H3"].includes(el.tagName)) {
+            const h1 = doc.createElement("h1");
+            h1.innerHTML = el.innerHTML;
+            el.replaceWith(h1);
+            headingEl = h1; // Update tham chiếu
+          }
+          
+          // Căn giữa
+          (headingEl as HTMLElement).style.textAlign = "center";
+          
+          // Thêm ngắt trang (Page Break) TRƯỚC thẻ này nếu nó không phải phần tử đầu tiên
+          // (Việc chèn page-break thực tế khi xuất DOCX sẽ do hàm exportToWord đảm nhận dựa trên nội dung/tag)
+          (headingEl as HTMLElement).classList.add("page-break-before");
+        }
+      });
+
+      // Lấy HTML đã được dọn dẹp
+      let cleanedHtml = doc.body.innerHTML;
+
+      // Đặt lại vào editor
+      editor.commands.setContent(cleanedHtml);
+      setIsFormatting(false);
+    }, 100);
+  };
+
+  const exportToWord = async () => {
+    if (!editor) return;
+    setIsExporting(true);
+
+    try {
+      let html = editor.getHTML();
+      
+      // Tiền xử lý HTML để tương thích tốt nhất với html-to-docx
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      
+      // Áp dụng inline styles cho DOCX
+      const allElements = doc.body.querySelectorAll("*");
+      allElements.forEach((el) => {
+        const hElement = el as HTMLElement;
+        // Times New Roman cho tất cả
+        hElement.style.fontFamily = "'Times New Roman', serif";
+        
+        // Căn lề giữa
+        if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
+          hElement.style.textAlign = "center";
+        }
+
+        // Size chữ
+        if (["H1", "H2", "H3"].includes(hElement.tagName)) {
+          hElement.style.fontSize = "16pt";
+        } else {
+          // Các thẻ còn lại (p, span, li...) mặc định là 13pt, ta không cần gán cứng trừ khi cần thiết, API đã lo
+          if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
+             hElement.style.fontSize = "13pt";
+          }
+        }
+      });
+
+      // html-to-docx page break fix: thay vì CSS, thêm <br clear="all" style="page-break-before:always" />
+      // (Tiếp cận này an toàn hơn với nhiều thư viện)
+      const pageBreakElements = doc.body.querySelectorAll(".page-break-before");
+      pageBreakElements.forEach((el) => {
+        if (el.previousElementSibling) {
+          const br = doc.createElement("br");
+          br.setAttribute("clear", "all");
+          br.style.pageBreakBefore = "always";
+          el.parentNode?.insertBefore(br, el);
+        }
+      });
+
+      const processedHtml = doc.body.innerHTML;
+
+      const response = await fetch("/api/export-docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html: processedHtml }),
+      });
+
+      if (!response.ok) throw new Error("Failed to export");
+
+      const blob = await response.blob();
+      saveAs(blob, "Book_Exported.docx");
+    } catch (error) {
+      console.error(error);
+      alert("Đã có lỗi xảy ra khi xuất file Word.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-6 h-6 text-blue-600" />
+              Book Formatter Pro
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Dán hàng trăm trang văn bản AI vào đây, dọn dẹp và xuất ra file Word siêu tốc.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={formatContent}
+              disabled={isFormatting}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              Dọn dẹp & Format
+            </button>
+            <button
+              onClick={exportToWord}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Xuất File Word
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Editor Area */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
+          <EditorContent editor={editor} />
         </div>
-      </main>
+        
+        {/* Hướng dẫn */}
+        <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
+          <strong>📝 Hướng dẫn sử dụng:</strong>
+          <ul className="list-disc ml-5 mt-2 space-y-1">
+            <li>Copy toàn bộ văn bản (hỗ trợ hàng trăm trang) từ AI Chat và dán vào khung soạn thảo trên.</li>
+            <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động: Xóa các câu tiếng Việt (prompt), xóa câu chào của AI (VD: <i>"Certainly! Here is Chapter..."</i>), căn lề giữa và tạo ngắt trang cho các đề mục (Chapter, Introduction, Conclusion).</li>
+            <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn (Font: Times New Roman, Nội dung: 13pt, Tiêu đề: 16pt, giữ nguyên in đậm/in nghiêng).</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
