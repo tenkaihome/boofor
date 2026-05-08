@@ -169,6 +169,9 @@ export default function Home() {
 
       let processedHtml = doc.body.innerHTML;
 
+      // Khắc phục triệt để lỗi sinh dấu ngoặc kép (&quot; hoặc ') bao quanh tên Font do trình duyệt tự động gen ra
+      processedHtml = processedHtml.replace(/font-family:\s*(&quot;|"|')?Times New Roman(&quot;|"|')?/gi, "font-family: Times New Roman");
+
       // Xây dựng trang bìa (Title Page) nếu người dùng có nhập
       if (title1 || title2 || author) {
         // html-to-docx tính kích thước chữ theo half-points ở API, nhưng trong CSS inline thì hỗ trợ pt
