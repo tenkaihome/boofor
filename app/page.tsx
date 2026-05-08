@@ -179,7 +179,7 @@ export default function Home() {
             ${title2 ? `<p style="font-family: 'Times New Roman', serif; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title2}</p>` : ""}
           </div>
           <div style="text-align: center; margin-top: 250pt;">
-            ${author ? `<p style="font-family: 'Times New Roman', serif; font-size: 20pt; font-weight: bold; text-decoration: underline; text-align: center; margin: 0;">${author}</p>` : ""}
+            ${author ? `<p style="font-family: 'Times New Roman', serif; font-size: 20pt; font-weight: bold; text-align: center; margin: 0;"><u>${author}</u></p>` : ""}
           </div>
           <div style="page-break-before: always;"></div>
         `;
@@ -244,27 +244,36 @@ export default function Home() {
             <h2 className="text-sm font-semibold text-gray-700">Trang bìa sách (Tùy chọn)</h2>
             <p className="text-xs text-gray-500">Thông tin này sẽ được in ở trang đầu tiên của file Word.</p>
           </div>
-          <input
-            type="text"
-            placeholder="Tên sách (Phần 1) - VD: Master English and Malay"
-            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            value={title1}
-            onChange={(e) => setTitle1(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Tên sách (Phần 2) - VD: In Minutes with Fast..."
-            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            value={title2}
-            onChange={(e) => setTitle2(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Tên Tác giả - VD: RACHAEL KELLY"
-            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:col-span-2"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-          />
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Tên sách (Phần 1)</label>
+            <input
+              type="text"
+              placeholder="VD: Master English and Malay"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+              value={title1}
+              onChange={(e) => setTitle1(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Tên sách (Phần 2)</label>
+            <input
+              type="text"
+              placeholder="VD: In Minutes with Fast and Easy Lessons..."
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+              value={title2}
+              onChange={(e) => setTitle2(e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-sm font-medium text-gray-700">Tên Tác giả</label>
+            <input
+              type="text"
+              placeholder="VD: RACHAEL KELLY"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Editor Area */}
