@@ -55,6 +55,11 @@ export default function Home() {
         "absolutely! below is",
         "here is a comprehensive",
         "congratulations! by reaching this point",
+        "please confirm",
+        "absolutely! here is",
+        "next steps:",
+        "thank you for your confirmation",
+        "end of chapter"
       ];
 
       // Lặp qua tất cả các thẻ text
@@ -149,15 +154,13 @@ export default function Home() {
         }
       });
 
-      // html-to-docx page break fix: thay vì CSS, thêm <br clear="all" style="page-break-before:always" />
-      // (Tiếp cận này an toàn hơn với nhiều thư viện)
+      // html-to-docx page break fix: Dùng một thẻ div rỗng có thuộc tính ngắt trang
       const pageBreakElements = doc.body.querySelectorAll(".page-break-before");
       pageBreakElements.forEach((el) => {
         if (el.previousElementSibling) {
-          const br = doc.createElement("br");
-          br.setAttribute("clear", "all");
-          br.style.pageBreakBefore = "always";
-          el.parentNode?.insertBefore(br, el);
+          const pageBreakDiv = doc.createElement("div");
+          pageBreakDiv.style.pageBreakBefore = "always";
+          el.parentNode?.insertBefore(pageBreakDiv, el);
         }
       });
 
