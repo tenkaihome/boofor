@@ -13,7 +13,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
 import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
 import { saveAs } from "file-saver";
-
+//toi vua fix cai dong nay xong mà khong duoc duyet len vercel
 export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
@@ -80,8 +80,8 @@ export default function Home() {
         const plainText = new DOMParser().parseFromString(text, "text/html").body.textContent || "";
         const blobText = new Blob([plainText], { type: "text/plain" });
         const data = [new ClipboardItem({
-            "text/html": blobHtml,
-            "text/plain": blobText,
+          "text/html": blobHtml,
+          "text/plain": blobText,
         })];
         await navigator.clipboard.write(data);
       } else {
@@ -116,7 +116,7 @@ export default function Home() {
 
     setTimeout(() => {
       let html = editor.getHTML();
-      
+
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
 
@@ -138,12 +138,12 @@ export default function Home() {
       ];
 
       const allElements = doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
-      
+
       allElements.forEach((el) => {
         const text = el.textContent?.trim() || "";
         const lowerText = text.toLowerCase();
-        
-        if (!text) return; 
+
+        if (!text) return;
 
         if (vietnameseRegex.test(text)) {
           el.remove();
@@ -158,7 +158,7 @@ export default function Home() {
 
         const wordCount = text.split(/\s+/).length;
         const isHeadingCandidate = wordCount < 15;
-        
+
         const isChapterHeading = /^chapter\s+\d+/i.test(lowerText);
         const isIntroOrConclusion = /(introduction|conclusion)/i.test(lowerText) && isHeadingCandidate;
 
@@ -168,9 +168,9 @@ export default function Home() {
             const h1 = doc.createElement("h1");
             h1.innerHTML = el.innerHTML;
             el.replaceWith(h1);
-            headingEl = h1; 
+            headingEl = h1;
           }
-          
+
           (headingEl as HTMLElement).style.textAlign = "center";
           (headingEl as HTMLElement).classList.add("page-break-before");
         }
@@ -181,7 +181,7 @@ export default function Home() {
       let hasFinishedIntro = false;
       let extractedIntro: string[] = [];
       const cleanedNodes = Array.from(doc.body.children);
-      
+
       for (const el of cleanedNodes) {
         const text = el.textContent?.trim() || "";
         const lower = text.toLowerCase();
@@ -210,15 +210,15 @@ export default function Home() {
 
     try {
       let html = editor.getHTML();
-      
+
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
-      
+
       const allElements = doc.body.querySelectorAll("*");
       allElements.forEach((el) => {
         const hElement = el as HTMLElement;
         hElement.style.fontFamily = "Times New Roman";
-        
+
         if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
           hElement.style.textAlign = "center";
         }
@@ -275,7 +275,7 @@ export default function Home() {
 
       const blob = await response.blob();
       const fullTitle = title1 ? `${title1}${title2 ? ` - ${title2}` : ""}` : "Book_Exported";
-      
+
       // Tự động copy tên sách vào clipboard
       try {
         await navigator.clipboard.writeText(fullTitle);
@@ -295,7 +295,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Cột trái: Editor và Export */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -332,7 +332,7 @@ export default function Home() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
             <EditorContent editor={editor} />
           </div>
-          
+
           <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
             <strong>📝 Hướng dẫn sử dụng:</strong>
             <ul className="list-disc ml-5 mt-2 space-y-1">
@@ -345,14 +345,14 @@ export default function Home() {
 
         {/* Cột phải: Tools lười biếng */}
         <div className="space-y-6">
-          
+
           {/* Tool 1: Book List Manager */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-indigo-600" />
               <h2 className="text-md font-semibold text-gray-800">Quản lý Danh sách Sách</h2>
             </div>
-            
+
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-500">Danh sách sách (Mỗi dòng 1 cuốn, dùng dấu "-" để tách 2 phần)</label>
               <textarea
@@ -382,7 +382,7 @@ export default function Home() {
           {/* Book Cover Info (Syncs with the editor export) */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <h2 className="text-md font-semibold text-gray-800">Thông tin Trang Bìa</h2>
-            
+
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-500">Tên sách (Phần 1)</label>
               <div className="flex gap-2">
@@ -433,7 +433,7 @@ export default function Home() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
-              <button 
+              <button
                 onClick={() => copyToClipboard(introductionText, 'intro', true)}
                 disabled={!introductionText}
                 className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
@@ -443,7 +443,7 @@ export default function Home() {
             </div>
             <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
             {introductionText ? (
-              <div 
+              <div
                 className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: introductionText }}
               />
