@@ -323,10 +323,7 @@ export default function Home() {
     try {
       const processedHtml = getProcessedHtml();
       
-      const element = document.createElement("div");
-      element.innerHTML = processedHtml;
-      element.style.color = "#000000";
-      element.style.backgroundColor = "#ffffff";
+      const wrappedHtml = `<div style="color: #000000; background-color: #ffffff;">${processedHtml}</div>`;
 
       const html2pdf = (await import("html2pdf.js")).default;
       
@@ -347,7 +344,7 @@ export default function Home() {
         pagebreak:    { mode: ['css', 'avoid-all'] }
       };
 
-      await html2pdf().set(opt).from(element).save();
+      await html2pdf().set(opt).from(wrappedHtml).save();
 
     } catch (error) {
       console.error(error);
