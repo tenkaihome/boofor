@@ -13,9 +13,10 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
 import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
 import { saveAs } from "file-saver";
-//toi vua fix cai dong nay xong mà khong duoc duyet len vercel
+
 export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
   const [title1, setTitle1] = useState("");
   const [title2, setTitle2] = useState("");
@@ -63,12 +64,8 @@ export default function Home() {
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
       .map((line) => {
-        // Hỗ trợ chia title1 và title2 nếu có dấu -, |, hoặc :
-        const match = line.match(/^(.*?)\s*[-|:]\s*(.*)$/);
-        if (match) {
-          return { title1: match[1], title2: match[2], full: line };
-        }
-        return { title1: line, title2: "", full: line };
+        let cleanTitle = line.replace(/^\d+\.\s*/, "");
+        return { title1: cleanTitle, title2: "", full: line };
       });
   }, [bookListText]);
 
@@ -123,18 +120,31 @@ export default function Home() {
       const vietnameseRegex = /[àáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũũụủưứừửữựỳýỹỷỵ]/i;
 
       const aiPhrases = [
-        "certainly! here is",
+        "certainly",
         "ready for chapter",
         "just say",
         "would you like to continue",
-        "absolutely! below is",
+        "absolutely",
         "here is a comprehensive",
         "congratulations! by reaching this point",
         "please confirm",
-        "absolutely! here is",
         "next steps:",
         "thank you for your confirmation",
-        "end of chapter"
+        "end of chapter",
+        "next up",
+        "in the next chapter",
+        "ready for more",
+        "continue to chapter",
+        "here is chapter",
+        "ready to begin",
+        "would you like me to continue",
+        "bạn có muốn tiếp tục với chapter",
+        "dưới đây là chapter",
+        "in the final chapter",
+        "tôi sẽ tiếp tục với chapter",
+        "nếu bạn muốn tiếp tục với chapter",
+        "would you like to sê a sample chapter",
+        "would you like to see a sample chapter"
       ];
 
       const allElements = doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
@@ -204,66 +214,80 @@ export default function Home() {
     }, 100);
   };
 
+  const getProcessedHtml = () => {
+    if (!editor) return "";
+    let html = editor.getHTML();
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    const allElements = doc.body.querySelectorAll("*");
+    allElements.forEach((el) => {
+      const hElement = el as HTMLElement;
+      hElement.style.fontFamily = "Times New Roman";
+      hElement.style.color = "#000000";
+
+      if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
+        hElement.style.textAlign = "center";
+      }
+
+      if (hElement.tagName === "H1") {
+        hElement.style.fontSize = "18pt";
+        hElement.style.fontWeight = "bold";
+        hElement.style.marginTop = "24pt";
+        hElement.style.marginBottom = "12pt";
+      } else if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
+        hElement.style.fontSize = "13pt";
+        hElement.style.lineHeight = "1.5";
+        hElement.style.marginBottom = "10pt";
+      } else if (hElement.tagName === "TABLE") {
+        hElement.style.borderCollapse = "collapse";
+        hElement.style.width = "100%";
+        hElement.setAttribute("border", "1");
+      } else if (hElement.tagName === "TD" || hElement.tagName === "TH") {
+        hElement.style.border = "1px solid black";
+        hElement.style.padding = "5px";
+      }
+    });
+
+    const h1Elements = doc.body.querySelectorAll("h1");
+    h1Elements.forEach((el, index) => {
+      if (el.previousElementSibling) {
+        const pageBreakDiv = doc.createElement("div");
+        pageBreakDiv.className = "page-break";
+        pageBreakDiv.style.pageBreakAfter = "always";
+        el.parentNode?.insertBefore(pageBreakDiv, el);
+      }
+    });
+
+    let processedHtml = doc.body.innerHTML;
+    processedHtml = processedHtml.replace(/font-family:\s*(&quot;|"|')?Times New Roman(&quot;|"|')?/gi, "font-family: Times New Roman");
+
+    if (title1 || title2 || author) {
+      const titlePageHtml = `
+        <div style="text-align: center; margin-top: 100pt; margin-bottom: 50pt; color: #000000;">
+          ${title1 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0; color: #000000;">${title1}</p>` : ""}
+          ${title1 && title2 ? `<p style="font-family: Times New Roman; font-size: 24pt; text-align: center; margin: 20pt 0; color: #000000;">***************************</p>` : ""}
+          ${title2 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0; color: #000000;">${title2}</p>` : ""}
+        </div>
+        ${Array(18).fill("<br/>").join("")}
+        <div style="text-align: center; color: #000000;">
+          ${author ? `<p style="font-family: Times New Roman; font-size: 20pt; font-weight: bold; text-align: center; margin: 0; color: #000000;"><u>${author}</u></p>` : ""}
+        </div>
+        <div class="page-break" style="page-break-after: always;"></div>
+      `;
+      processedHtml = titlePageHtml + processedHtml;
+    }
+
+    return processedHtml;
+  };
+
   const exportToWord = async () => {
     if (!editor) return;
     setIsExporting(true);
 
     try {
-      let html = editor.getHTML();
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-
-      const allElements = doc.body.querySelectorAll("*");
-      allElements.forEach((el) => {
-        const hElement = el as HTMLElement;
-        hElement.style.fontFamily = "Times New Roman";
-
-        if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
-          hElement.style.textAlign = "center";
-        }
-
-        if (hElement.tagName === "H1") {
-          hElement.style.fontSize = "16pt";
-        } else if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
-          hElement.style.fontSize = "13pt";
-        } else if (hElement.tagName === "TABLE") {
-          hElement.style.borderCollapse = "collapse";
-          hElement.style.width = "100%";
-          hElement.setAttribute("border", "1");
-        } else if (hElement.tagName === "TD" || hElement.tagName === "TH") {
-          hElement.style.border = "1px solid black";
-          hElement.style.padding = "5px";
-        }
-      });
-
-      const pageBreakElements = doc.body.querySelectorAll(".page-break-before");
-      pageBreakElements.forEach((el) => {
-        if (el.previousElementSibling) {
-          const pageBreakDiv = doc.createElement("div");
-          pageBreakDiv.style.pageBreakBefore = "always";
-          el.parentNode?.insertBefore(pageBreakDiv, el);
-        }
-      });
-
-      let processedHtml = doc.body.innerHTML;
-
-      processedHtml = processedHtml.replace(/font-family:\s*(&quot;|"|')?Times New Roman(&quot;|"|')?/gi, "font-family: Times New Roman");
-
-      if (title1 || title2 || author) {
-        const titlePageHtml = `
-          <div style="text-align: center; margin-top: 100pt; margin-bottom: 50pt;">
-            ${title1 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title1}</p>` : ""}
-            ${title1 && title2 ? `<hr style="border: none; border-top: 3pt dotted black; width: 100%; margin: 40pt 0;" />` : ""}
-            ${title2 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title2}</p>` : ""}
-          </div>
-          <div style="text-align: center; margin-top: 250pt;">
-            ${author ? `<p style="font-family: Times New Roman; font-size: 20pt; font-weight: bold; text-align: center; margin: 0;"><u>${author}</u></p>` : ""}
-          </div>
-          <div style="page-break-before: always;"></div>
-        `;
-        processedHtml = titlePageHtml + processedHtml;
-      }
+      const processedHtml = getProcessedHtml();
 
       const response = await fetch("/api/export-docx", {
         method: "POST",
@@ -274,7 +298,7 @@ export default function Home() {
       if (!response.ok) throw new Error("Failed to export");
 
       const blob = await response.blob();
-      const fullTitle = title1 ? `${title1}${title2 ? ` - ${title2}` : ""}` : "Book_Exported";
+      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.trim() : "Book_Exported";
 
       // Tự động copy tên sách vào clipboard
       try {
@@ -289,6 +313,47 @@ export default function Home() {
       alert("Đã có lỗi xảy ra khi xuất file Word.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    if (!editor) return;
+    setIsExportingPDF(true);
+
+    try {
+      const processedHtml = getProcessedHtml();
+      
+      const element = document.createElement("div");
+      element.innerHTML = processedHtml;
+      element.style.color = "#000000";
+      element.style.backgroundColor = "#ffffff";
+
+      const html2pdf = (await import("html2pdf.js")).default;
+      
+      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.trim() : "Book_Exported";
+
+      try {
+        await navigator.clipboard.writeText(fullTitle);
+      } catch (err) {
+        console.error("Failed to copy title", err);
+      }
+
+      const opt = {
+        margin:       [0.5, 0.5, 0.5, 0.5], // top, left, bottom, right in inches
+        filename:     `${fullTitle}.pdf`,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { scale: 3, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['css', 'avoid-all'] }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+
+    } catch (error) {
+      console.error(error);
+      alert("Đã có lỗi xảy ra khi xuất file PDF.");
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -325,6 +390,14 @@ export default function Home() {
               >
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Xuất File Word
+              </button>
+              <button
+                onClick={exportToPDF}
+                disabled={isExportingPDF}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+              >
+                {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Xuất File PDF
               </button>
             </div>
           </div>
@@ -392,7 +465,7 @@ export default function Home() {
                   value={title1}
                   onChange={(e) => setTitle1(e.target.value)}
                 />
-                <button onClick={() => copyToClipboard(title1, 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
                   {copiedId === 'title1' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
@@ -407,7 +480,7 @@ export default function Home() {
                   value={title2}
                   onChange={(e) => setTitle2(e.target.value)}
                 />
-                <button onClick={() => copyToClipboard(title2, 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
                   {copiedId === 'title2' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
