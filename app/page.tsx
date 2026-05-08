@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
-import { Save, Wand2, FileText, Loader2 } from "lucide-react";
+import { Save, Wand2, FileText, Loader2, Copy, BookOpen } from "lucide-react";
 import { saveAs } from "file-saver";
 
 export default function Home() {
@@ -13,6 +13,8 @@ export default function Home() {
   const [title1, setTitle1] = useState("");
   const [title2, setTitle2] = useState("");
   const [author, setAuthor] = useState("");
+  const [bookListText, setBookListText] = useState("");
+  const [introductionText, setIntroductionText] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -35,6 +37,36 @@ export default function Home() {
     },
   });
 
+  const parsedBooks = useMemo(() => {
+    if (!bookListText) return [];
+    return bookListText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        // Hỗ trợ chia title1 và title2 nếu có dấu -, |, hoặc :
+        const match = line.match(/^(.*?)\s*[-|:]\s*(.*)$/);
+        if (match) {
+          return { title1: match[1], title2: match[2], full: line };
+        }
+        return { title1: line, title2: "", full: line };
+      });
+  }, [bookListText]);
+
+  const copyToClipboard = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    // Optional: could add a toast notification here
+  };
+
+  const handleSelectBook = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const idx = parseInt(e.target.value, 10);
+    if (!isNaN(idx) && parsedBooks[idx]) {
+      setTitle1(parsedBooks[idx].title1);
+      setTitle2(parsedBooks[idx].title2);
+    }
+  };
+
   const formatContent = () => {
     if (!editor) return;
     setIsFormatting(true);
@@ -42,14 +74,11 @@ export default function Home() {
     setTimeout(() => {
       let html = editor.getHTML();
       
-      // Sử dụng DOMParser để xử lý HTML an toàn hơn
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
 
-      // Regex phát hiện tiếng Việt (có dấu)
       const vietnameseRegex = /[àáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũũụủưứừửữựỳýỹỷỵ]/i;
 
-      // Các cụm từ tiếng Anh vô nghĩa của AI cần xóa
       const aiPhrases = [
         "certainly! here is",
         "ready for chapter",
@@ -65,30 +94,25 @@ export default function Home() {
         "end of chapter"
       ];
 
-      // Lặp qua tất cả các thẻ text
       const allElements = doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
       
       allElements.forEach((el) => {
         const text = el.textContent?.trim() || "";
         const lowerText = text.toLowerCase();
         
-        if (!text) return; // Bỏ qua thẻ rỗng
+        if (!text) return; 
 
-        // 1. Xóa các đoạn chứa tiếng Việt (Prompt người dùng, câu trả lời của AI bằng tiếng Việt)
         if (vietnameseRegex.test(text)) {
           el.remove();
           return;
         }
 
-        // 2. Xóa các đoạn chat bằng tiếng Anh của AI
         const hasAiPhrase = aiPhrases.some((phrase) => lowerText.includes(phrase));
         if (hasAiPhrase) {
           el.remove();
           return;
         }
 
-        // 3. Nhận diện Chapter, Introduction, Conclusion để làm Heading và Ngắt trang
-        // Tiêu đề thường ngắn (dưới 15 từ)
         const wordCount = text.split(/\s+/).length;
         const isHeadingCandidate = wordCount < 15;
         
@@ -96,28 +120,42 @@ export default function Home() {
         const isIntroOrConclusion = /(introduction|conclusion)/i.test(lowerText) && isHeadingCandidate;
 
         if (isChapterHeading || isIntroOrConclusion) {
-          // Ép kiểu thành Heading 1 nếu chưa phải
           let headingEl = el;
           if (!["H1", "H2", "H3"].includes(el.tagName)) {
             const h1 = doc.createElement("h1");
             h1.innerHTML = el.innerHTML;
             el.replaceWith(h1);
-            headingEl = h1; // Update tham chiếu
+            headingEl = h1; 
           }
           
-          // Căn giữa
           (headingEl as HTMLElement).style.textAlign = "center";
-          
-          // Thêm ngắt trang (Page Break) TRƯỚC thẻ này nếu nó không phải phần tử đầu tiên
-          // (Việc chèn page-break thực tế khi xuất DOCX sẽ do hàm exportToWord đảm nhận dựa trên nội dung/tag)
           (headingEl as HTMLElement).classList.add("page-break-before");
         }
       });
 
-      // Lấy HTML đã được dọn dẹp
-      let cleanedHtml = doc.body.innerHTML;
+      // Lấy Intro text trước khi đặt lại nội dung
+      let isRecordingIntro = false;
+      let hasFinishedIntro = false;
+      let extractedIntro: string[] = [];
+      const cleanedNodes = Array.from(doc.body.children);
+      
+      for (const el of cleanedNodes) {
+        const text = el.textContent?.trim() || "";
+        const lower = text.toLowerCase();
 
-      // Đặt lại vào editor
+        if (/^chapter\s+\d+/i.test(lower)) {
+          isRecordingIntro = false;
+          hasFinishedIntro = true;
+        } else if (/(introduction)/i.test(lower) && text.split(/\s+/).length < 15 && !hasFinishedIntro && !isRecordingIntro) {
+          isRecordingIntro = true;
+        } else if (isRecordingIntro && text) {
+          extractedIntro.push(text);
+        }
+      }
+
+      setIntroductionText(extractedIntro.join("\n\n"));
+
+      let cleanedHtml = doc.body.innerHTML;
       editor.commands.setContent(cleanedHtml);
       setIsFormatting(false);
     }, 100);
@@ -130,34 +168,27 @@ export default function Home() {
     try {
       let html = editor.getHTML();
       
-      // Tiền xử lý HTML để tương thích tốt nhất với html-to-docx
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
       
-      // Áp dụng inline styles cho DOCX
       const allElements = doc.body.querySelectorAll("*");
       allElements.forEach((el) => {
         const hElement = el as HTMLElement;
-        // Times New Roman cho tất cả
         hElement.style.fontFamily = "Times New Roman";
         
-        // Căn lề giữa
         if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
           hElement.style.textAlign = "center";
         }
 
-        // Size chữ
         if (["H1", "H2", "H3"].includes(hElement.tagName)) {
           hElement.style.fontSize = "16pt";
         } else {
-          // Các thẻ còn lại (p, span, li...) mặc định là 13pt, ta không cần gán cứng trừ khi cần thiết, API đã lo
           if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
              hElement.style.fontSize = "13pt";
           }
         }
       });
 
-      // html-to-docx page break fix: Dùng một thẻ div rỗng có thuộc tính ngắt trang
       const pageBreakElements = doc.body.querySelectorAll(".page-break-before");
       pageBreakElements.forEach((el) => {
         if (el.previousElementSibling) {
@@ -169,12 +200,9 @@ export default function Home() {
 
       let processedHtml = doc.body.innerHTML;
 
-      // Khắc phục triệt để lỗi sinh dấu ngoặc kép (&quot; hoặc ') bao quanh tên Font do trình duyệt tự động gen ra
       processedHtml = processedHtml.replace(/font-family:\s*(&quot;|"|')?Times New Roman(&quot;|"|')?/gi, "font-family: Times New Roman");
 
-      // Xây dựng trang bìa (Title Page) nếu người dùng có nhập
       if (title1 || title2 || author) {
-        // html-to-docx tính kích thước chữ theo half-points ở API, nhưng trong CSS inline thì hỗ trợ pt
         const titlePageHtml = `
           <div style="text-align: center; margin-top: 100pt; margin-bottom: 50pt;">
             ${title1 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title1}</p>` : ""}
@@ -209,89 +237,159 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-6 h-6 text-blue-600" />
-              Book Formatter Pro
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Dán hàng trăm trang văn bản AI vào đây, dọn dẹp và xuất ra file Word siêu tốc.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={formatContent}
-              disabled={isFormatting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-            >
-              {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              Dọn dẹp & Format
-            </button>
-            <button
-              onClick={exportToWord}
-              disabled={isExporting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-            >
-              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Xuất File Word
-            </button>
-          </div>
-        </div>
-
-        {/* Thông tin Sách */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2 space-y-1">
-            <h2 className="text-sm font-semibold text-gray-700">Trang bìa sách (Tùy chọn)</h2>
-            <p className="text-xs text-gray-500">Thông tin này sẽ được in ở trang đầu tiên của file Word.</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Tên sách (Phần 1)</label>
-            <input
-              type="text"
-              placeholder="VD: Master English and Malay"
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-              value={title1}
-              onChange={(e) => setTitle1(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Tên sách (Phần 2)</label>
-            <input
-              type="text"
-              placeholder="VD: In Minutes with Fast and Easy Lessons..."
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-              value={title2}
-              onChange={(e) => setTitle2(e.target.value)}
-            />
-          </div>
-          <div className="md:col-span-2 space-y-1">
-            <label className="text-sm font-medium text-gray-700">Tên Tác giả</label>
-            <input
-              type="text"
-              placeholder="VD: RACHAEL KELLY"
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Editor Area */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
-          <EditorContent editor={editor} />
-        </div>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Hướng dẫn */}
-        <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
-          <strong>📝 Hướng dẫn sử dụng:</strong>
-          <ul className="list-disc ml-5 mt-2 space-y-1">
-            <li>Copy toàn bộ văn bản (hỗ trợ hàng trăm trang) từ AI Chat và dán vào khung soạn thảo trên.</li>
-            <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động: Xóa các câu tiếng Việt (prompt), xóa câu chào của AI (VD: <i>"Certainly! Here is Chapter..."</i>), căn lề giữa và tạo ngắt trang cho các đề mục (Chapter, Introduction, Conclusion).</li>
-            <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn (Font: Times New Roman, Nội dung: 13pt, Tiêu đề: 16pt, giữ nguyên in đậm/in nghiêng).</li>
-          </ul>
+        {/* Cột trái: Editor và Export */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="w-6 h-6 text-blue-600" />
+                Book Formatter Pro
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Dán văn bản AI, tự động format thành sách và xuất Word.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={formatContent}
+                disabled={isFormatting}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+              >
+                {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Dọn dẹp & Format
+              </button>
+              <button
+                onClick={exportToWord}
+                disabled={isExporting}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Xuất File Word
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
+            <EditorContent editor={editor} />
+          </div>
+          
+          <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
+            <strong>📝 Hướng dẫn sử dụng:</strong>
+            <ul className="list-disc ml-5 mt-2 space-y-1">
+              <li>Copy toàn bộ văn bản từ AI Chat và dán vào khung soạn thảo trên.</li>
+              <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động căn lề và tạo ngắt trang.</li>
+              <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn.</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Cột phải: Tools lười biếng */}
+        <div className="space-y-6">
+          
+          {/* Tool 1: Book List Manager */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-md font-semibold text-gray-800">Quản lý Danh sách Sách</h2>
+            </div>
+            
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Danh sách sách (Mỗi dòng 1 cuốn, dùng dấu "-" để tách 2 phần)</label>
+              <textarea
+                rows={4}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                placeholder="Ví dụ:\nSách 1 phần A - Sách 1 phần B\nSách số 2 - Cực kỳ hay"
+                value={bookListText}
+                onChange={(e) => setBookListText(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Chọn Sách để điền Tự Động</label>
+              <select
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                onChange={handleSelectBook}
+                defaultValue=""
+              >
+                <option value="" disabled>-- Chọn cuốn sách đang làm --</option>
+                {parsedBooks.map((book, idx) => (
+                  <option key={idx} value={idx}>{book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Book Cover Info (Syncs with the editor export) */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-md font-semibold text-gray-800">Thông tin Trang Bìa</h2>
+            
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Tên sách (Phần 1)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                  value={title1}
+                  onChange={(e) => setTitle1(e.target.value)}
+                />
+                <button onClick={() => copyToClipboard(title1)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Tên sách (Phần 2)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                  value={title2}
+                  onChange={(e) => setTitle2(e.target.value)}
+                />
+                <button onClick={() => copyToClipboard(title2)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Tác giả</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                />
+                <button onClick={() => copyToClipboard(author)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Intro Extractor */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
+              <button 
+                onClick={() => copyToClipboard(introductionText)}
+                disabled={!introductionText}
+                className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              >
+                <Copy className="w-3 h-3" /> Copy
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
+            <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap">
+              {introductionText || "Chưa có nội dung..."}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
