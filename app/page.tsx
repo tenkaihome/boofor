@@ -338,8 +338,8 @@ export default function Home() {
         console.error("Failed to copy title", err);
       }
 
-      const opt = {
-        margin:       [0.5, 0.5, 0.5, 0.5], // top, left, bottom, right in inches
+      const opt: any = {
+        margin:       0.5, // top, left, bottom, right in inches
         filename:     `${fullTitle}.pdf`,
         image:        { type: 'jpeg', quality: 1.0 },
         html2canvas:  { scale: 3, useCORS: true, letterRendering: true },
