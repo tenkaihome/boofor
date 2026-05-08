@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
-import { Save, Wand2, FileText, Loader2, Copy, BookOpen } from "lucide-react";
+import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
 import { saveAs } from "file-saver";
 
 export default function Home() {
@@ -15,6 +15,7 @@ export default function Home() {
   const [author, setAuthor] = useState("");
   const [bookListText, setBookListText] = useState("");
   const [introductionText, setIntroductionText] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -53,10 +54,34 @@ export default function Home() {
       });
   }, [bookListText]);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = async (text: string, id: string, isHtml = false) => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
-    // Optional: could add a toast notification here
+    try {
+      if (isHtml) {
+        const blobHtml = new Blob([text], { type: "text/html" });
+        const plainText = new DOMParser().parseFromString(text, "text/html").body.textContent || "";
+        const blobText = new Blob([plainText], { type: "text/plain" });
+        const data = [new ClipboardItem({
+            "text/html": blobHtml,
+            "text/plain": blobText,
+        })];
+        await navigator.clipboard.write(data);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error(err);
+      if (isHtml) {
+        const plainText = new DOMParser().parseFromString(text, "text/html").body.textContent || "";
+        navigator.clipboard.writeText(plainText);
+      } else {
+        navigator.clipboard.writeText(text);
+      }
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleSelectBook = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -149,11 +174,11 @@ export default function Home() {
         } else if (/(introduction)/i.test(lower) && text.split(/\s+/).length < 15 && !hasFinishedIntro && !isRecordingIntro) {
           isRecordingIntro = true;
         } else if (isRecordingIntro && text) {
-          extractedIntro.push(text);
+          extractedIntro.push(el.outerHTML);
         }
       }
 
-      setIntroductionText(extractedIntro.join("\n\n"));
+      setIntroductionText(extractedIntro.join(""));
 
       let cleanedHtml = doc.body.innerHTML;
       editor.commands.setContent(cleanedHtml);
@@ -316,7 +341,7 @@ export default function Home() {
               >
                 <option value="" disabled>-- Chọn cuốn sách đang làm --</option>
                 {parsedBooks.map((book, idx) => (
-                  <option key={idx} value={idx}>{book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
+                  <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
                 ))}
               </select>
             </div>
@@ -335,8 +360,8 @@ export default function Home() {
                   value={title1}
                   onChange={(e) => setTitle1(e.target.value)}
                 />
-                <button onClick={() => copyToClipboard(title1)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
-                  <Copy className="w-4 h-4" />
+                <button onClick={() => copyToClipboard(title1, 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  {copiedId === 'title1' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -350,8 +375,8 @@ export default function Home() {
                   value={title2}
                   onChange={(e) => setTitle2(e.target.value)}
                 />
-                <button onClick={() => copyToClipboard(title2)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
-                  <Copy className="w-4 h-4" />
+                <button onClick={() => copyToClipboard(title2, 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  {copiedId === 'title2' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -365,8 +390,8 @@ export default function Home() {
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
                 />
-                <button onClick={() => copyToClipboard(author)} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
-                  <Copy className="w-4 h-4" />
+                <button onClick={() => copyToClipboard(author, 'author')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                  {copiedId === 'author' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -377,17 +402,24 @@ export default function Home() {
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
               <button 
-                onClick={() => copyToClipboard(introductionText)}
+                onClick={() => copyToClipboard(introductionText, 'intro', true)}
                 disabled={!introductionText}
                 className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
               >
-                <Copy className="w-3 h-3" /> Copy
+                {copiedId === 'intro' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'intro' ? 'Copied' : 'Copy'}
               </button>
             </div>
             <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
-            <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap">
-              {introductionText || "Chưa có nội dung..."}
-            </div>
+            {introductionText ? (
+              <div 
+                className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: introductionText }}
+              />
+            ) : (
+              <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap">
+                Chưa có nội dung...
+              </div>
+            )}
           </div>
 
         </div>
