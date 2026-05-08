@@ -147,9 +147,26 @@ export default function Home() {
         "would you like to see a sample chapter"
       ];
 
-      const allElements = doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
+      const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
+      
+      let hasSeenIntro = false;
+      let hasSeenChapter = false;
+      let lastConclusionElement: Element | null = null;
 
-      allElements.forEach((el) => {
+      for (let i = allElementsArr.length - 1; i >= 0; i--) {
+        const el = allElementsArr[i];
+        const text = el.textContent?.trim() || "";
+        if (!text) continue;
+        const lowerText = text.toLowerCase();
+        const wordCount = text.split(/\s+/).length;
+        
+        if (el.tagName !== "LI" && /^(conclusion|kết luận)$/i.test(lowerText)) {
+          lastConclusionElement = el;
+          break;
+        }
+      }
+
+      allElementsArr.forEach((el) => {
         const text = el.textContent?.trim() || "";
         const lowerText = text.toLowerCase();
 
@@ -169,8 +186,25 @@ export default function Home() {
         const wordCount = text.split(/\s+/).length;
         const isHeadingCandidate = wordCount < 15;
 
-        const isChapterHeading = /^chapter\s+\d+/i.test(lowerText);
-        const isIntroOrConclusion = /(introduction|conclusion)/i.test(lowerText) && isHeadingCandidate;
+        const isChapterHeading = el.tagName !== "LI" && /^chapter\s+\d+/i.test(lowerText);
+        if (isChapterHeading) {
+          hasSeenChapter = true;
+        }
+        
+        let isMainIntro = false;
+        if (el.tagName !== "LI" && /^(introduction|giới thiệu|lời nói đầu)\b/i.test(lowerText) && isHeadingCandidate) {
+          if (!hasSeenIntro && !hasSeenChapter) {
+            isMainIntro = true;
+            hasSeenIntro = true;
+          }
+        }
+
+        let isMainConclusion = false;
+        if (el === lastConclusionElement) {
+          isMainConclusion = true;
+        }
+
+        const isIntroOrConclusion = isMainIntro || isMainConclusion;
 
         if (isChapterHeading || isIntroOrConclusion) {
           let headingEl = el;
@@ -322,11 +356,6 @@ export default function Home() {
 
     try {
       const processedHtml = getProcessedHtml();
-      
-      const wrappedHtml = `<div style="color: #000000; background-color: #ffffff;">${processedHtml}</div>`;
-
-      const html2pdf = (await import("html2pdf.js")).default;
-      
       const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.trim() : "Book_Exported";
 
       try {
@@ -335,16 +364,73 @@ export default function Home() {
         console.error("Failed to copy title", err);
       }
 
-      const opt: any = {
-        margin:       0.5, // top, left, bottom, right in inches
-        filename:     `${fullTitle}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { scale: 3, useCORS: true, letterRendering: true },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'avoid-all'] }
-      };
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Vui lòng cho phép mở popup để xuất PDF.");
+        return;
+      }
 
-      await html2pdf().set(opt).from(wrappedHtml).save();
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${fullTitle}</title>
+            <style>
+              @page {
+                size: A4;
+                margin: 0.5in;
+              }
+              body {
+                font-family: 'Times New Roman', serif;
+                color: #000000;
+                line-height: 1.5;
+                font-size: 13pt;
+              }
+              h1 {
+                font-size: 18pt;
+                font-weight: bold;
+                text-align: center;
+                margin-top: 24pt;
+                margin-bottom: 12pt;
+              }
+              p, span, div {
+                font-size: 13pt;
+                margin-bottom: 10pt;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              td, th {
+                border: 1px solid black;
+                padding: 5px;
+              }
+              .page-break {
+                page-break-after: always;
+              }
+              /* Ẩn các nút in mặc định nếu có */
+              @media print {
+                html, body {
+                  height: auto;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            ${processedHtml}
+            <script>
+              window.onload = () => {
+                setTimeout(() => {
+                  window.print();
+                }, 500);
+              };
+              window.onafterprint = () => {
+                window.close();
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
 
     } catch (error) {
       console.error(error);
