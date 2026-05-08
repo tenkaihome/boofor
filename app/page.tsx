@@ -10,6 +10,9 @@ import { saveAs } from "file-saver";
 export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [title1, setTitle1] = useState("");
+  const [title2, setTitle2] = useState("");
+  const [author, setAuthor] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -164,7 +167,24 @@ export default function Home() {
         }
       });
 
-      const processedHtml = doc.body.innerHTML;
+      let processedHtml = doc.body.innerHTML;
+
+      // Xây dựng trang bìa (Title Page) nếu người dùng có nhập
+      if (title1 || title2 || author) {
+        // html-to-docx tính kích thước chữ theo half-points ở API, nhưng trong CSS inline thì hỗ trợ pt
+        const titlePageHtml = `
+          <div style="text-align: center; margin-top: 100pt; margin-bottom: 50pt;">
+            ${title1 ? `<p style="font-family: 'Times New Roman', serif; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title1}</p>` : ""}
+            ${title1 && title2 ? `<hr style="border: none; border-top: 3pt dotted black; width: 100%; margin: 40pt 0;" />` : ""}
+            ${title2 ? `<p style="font-family: 'Times New Roman', serif; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title2}</p>` : ""}
+          </div>
+          <div style="text-align: center; margin-top: 250pt;">
+            ${author ? `<p style="font-family: 'Times New Roman', serif; font-size: 20pt; font-weight: bold; text-decoration: underline; text-align: center; margin: 0;">${author}</p>` : ""}
+          </div>
+          <div style="page-break-before: always;"></div>
+        `;
+        processedHtml = titlePageHtml + processedHtml;
+      }
 
       const response = await fetch("/api/export-docx", {
         method: "POST",
@@ -216,6 +236,35 @@ export default function Home() {
               Xuất File Word
             </button>
           </div>
+        </div>
+
+        {/* Thông tin Sách */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2 space-y-1">
+            <h2 className="text-sm font-semibold text-gray-700">Trang bìa sách (Tùy chọn)</h2>
+            <p className="text-xs text-gray-500">Thông tin này sẽ được in ở trang đầu tiên của file Word.</p>
+          </div>
+          <input
+            type="text"
+            placeholder="Tên sách (Phần 1) - VD: Master English and Malay"
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={title1}
+            onChange={(e) => setTitle1(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Tên sách (Phần 2) - VD: In Minutes with Fast..."
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={title2}
+            onChange={(e) => setTitle2(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Tên Tác giả - VD: RACHAEL KELLY"
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:col-span-2"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+          />
         </div>
 
         {/* Editor Area */}
