@@ -144,11 +144,22 @@ export default function Home() {
         "tôi sẽ tiếp tục với chapter",
         "nếu bạn muốn tiếp tục với chapter",
         "would you like to sê a sample chapter",
-        "would you like to see a sample chapter"
+        "would you like to see a sample chapter",
+        "1000 words",
+        "1100 words",
+        "1200 words",
+        "1300 words",
+        "1400 words",
+        "1500 words",
+        "1600 words",
+        "1700 words",
+        "1800 words",
+        "1900 words",
+        "2000 words"
       ];
 
       const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
-      
+
       let hasSeenIntro = false;
       let hasSeenChapter = false;
       let lastConclusionElement: Element | null = null;
@@ -159,7 +170,7 @@ export default function Home() {
         if (!text) continue;
         const lowerText = text.toLowerCase();
         const wordCount = text.split(/\s+/).length;
-        
+
         if (el.tagName !== "LI" && /^(conclusion|kết luận)$/i.test(lowerText)) {
           lastConclusionElement = el;
           break;
@@ -190,7 +201,7 @@ export default function Home() {
         if (isChapterHeading) {
           hasSeenChapter = true;
         }
-        
+
         let isMainIntro = false;
         if (el.tagName !== "LI" && /^(introduction|giới thiệu|lời nói đầu)\b/i.test(lowerText) && isHeadingCandidate) {
           if (!hasSeenIntro && !hasSeenChapter) {
