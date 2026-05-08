@@ -139,7 +139,7 @@ export default function Home() {
       allElements.forEach((el) => {
         const hElement = el as HTMLElement;
         // Times New Roman cho tất cả
-        hElement.style.fontFamily = "'Times New Roman', serif";
+        hElement.style.fontFamily = "Times New Roman";
         
         // Căn lề giữa
         if (hElement.style.textAlign === "center" || hElement.getAttribute("data-text-align") === "center") {
@@ -174,12 +174,12 @@ export default function Home() {
         // html-to-docx tính kích thước chữ theo half-points ở API, nhưng trong CSS inline thì hỗ trợ pt
         const titlePageHtml = `
           <div style="text-align: center; margin-top: 100pt; margin-bottom: 50pt;">
-            ${title1 ? `<p style="font-family: 'Times New Roman', serif; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title1}</p>` : ""}
+            ${title1 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title1}</p>` : ""}
             ${title1 && title2 ? `<hr style="border: none; border-top: 3pt dotted black; width: 100%; margin: 40pt 0;" />` : ""}
-            ${title2 ? `<p style="font-family: 'Times New Roman', serif; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title2}</p>` : ""}
+            ${title2 ? `<p style="font-family: Times New Roman; font-size: 30pt; font-weight: bold; text-align: center; margin: 0;">${title2}</p>` : ""}
           </div>
           <div style="text-align: center; margin-top: 250pt;">
-            ${author ? `<p style="font-family: 'Times New Roman', serif; font-size: 20pt; font-weight: bold; text-align: center; margin: 0;"><u>${author}</u></p>` : ""}
+            ${author ? `<p style="font-family: Times New Roman; font-size: 20pt; font-weight: bold; text-align: center; margin: 0;"><u>${author}</u></p>` : ""}
           </div>
           <div style="page-break-before: always;"></div>
         `;
