@@ -6,6 +6,10 @@ import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
+import Table from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
 import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
 import { saveAs } from "file-saver";
@@ -32,6 +36,12 @@ export default function Home() {
       }),
       Underline.configure(),
       Markdown.configure(),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Placeholder.configure({
         placeholder: "Dán nội dung vào đây...",
       }),
@@ -217,6 +227,13 @@ export default function Home() {
           hElement.style.fontSize = "16pt";
         } else if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
           hElement.style.fontSize = "13pt";
+        } else if (hElement.tagName === "TABLE") {
+          hElement.style.borderCollapse = "collapse";
+          hElement.style.width = "100%";
+          hElement.setAttribute("border", "1");
+        } else if (hElement.tagName === "TD" || hElement.tagName === "TH") {
+          hElement.style.border = "1px solid black";
+          hElement.style.padding = "5px";
         }
       });
 
@@ -257,7 +274,16 @@ export default function Home() {
       if (!response.ok) throw new Error("Failed to export");
 
       const blob = await response.blob();
-      saveAs(blob, "Book_Exported.docx");
+      const fullTitle = title1 ? `${title1}${title2 ? ` - ${title2}` : ""}` : "Book_Exported";
+      
+      // Tự động copy tên sách vào clipboard
+      try {
+        await navigator.clipboard.writeText(fullTitle);
+      } catch (err) {
+        console.error("Failed to copy title", err);
+      }
+
+      saveAs(blob, `${fullTitle}.docx`);
     } catch (error) {
       console.error(error);
       alert("Đã có lỗi xảy ra khi xuất file Word.");
