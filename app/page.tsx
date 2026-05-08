@@ -4,6 +4,9 @@ import { useState, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "tiptap-markdown";
 import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
 import { saveAs } from "file-saver";
 
@@ -27,8 +30,13 @@ export default function Home() {
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
+      Underline.configure(),
+      Markdown.configure(),
+      Placeholder.configure({
+        placeholder: "Dán nội dung vào đây...",
+      }),
     ],
-    content: "<p>Dán nội dung vào đây...</p>",
+    content: "",
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -146,7 +154,7 @@ export default function Home() {
 
         if (isChapterHeading || isIntroOrConclusion) {
           let headingEl = el;
-          if (!["H1", "H2", "H3"].includes(el.tagName)) {
+          if (el.tagName !== "H1") {
             const h1 = doc.createElement("h1");
             h1.innerHTML = el.innerHTML;
             el.replaceWith(h1);
@@ -205,12 +213,10 @@ export default function Home() {
           hElement.style.textAlign = "center";
         }
 
-        if (["H1", "H2", "H3"].includes(hElement.tagName)) {
+        if (hElement.tagName === "H1") {
           hElement.style.fontSize = "16pt";
-        } else {
-          if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
-             hElement.style.fontSize = "13pt";
-          }
+        } else if (hElement.tagName === "P" || hElement.tagName === "SPAN") {
+          hElement.style.fontSize = "13pt";
         }
       });
 
