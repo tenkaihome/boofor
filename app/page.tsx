@@ -32,6 +32,8 @@ export default function Home() {
   const [chapterKeywords, setChapterKeywords] = useState("chapter, lesson");
   const [genresText, setGenresText] = useState("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
   const [customBlockPhrases, setCustomBlockPhrases] = useState("");
+  const [promptTemplate, setPromptTemplate] = useState("");
+  const [promptPlaceholderBook, setPromptPlaceholderBook] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
@@ -40,7 +42,7 @@ export default function Home() {
   useEffect(() => {
     const savedBookList = localStorage.getItem("bofo_bookList");
     if (savedBookList) setBookListText(savedBookList);
-    
+
     const savedTitle1 = localStorage.getItem("bofo_title1");
     if (savedTitle1) setTitle1(savedTitle1);
 
@@ -64,6 +66,12 @@ export default function Home() {
 
     const savedCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases");
     if (savedCustomBlockPhrases) setCustomBlockPhrases(savedCustomBlockPhrases);
+
+    const savedPromptTemplate = localStorage.getItem("bofo_promptTemplate");
+    if (savedPromptTemplate) setPromptTemplate(savedPromptTemplate);
+
+    const savedPromptPlaceholderBook = localStorage.getItem("bofo_promptPlaceholderBook");
+    if (savedPromptPlaceholderBook) setPromptPlaceholderBook(savedPromptPlaceholderBook);
   }, []);
 
   useEffect(() => {
@@ -93,6 +101,14 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("bofo_customBlockPhrases", customBlockPhrases);
   }, [customBlockPhrases]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_promptTemplate", promptTemplate);
+  }, [promptTemplate]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
+  }, [promptPlaceholderBook]);
 
   useEffect(() => {
     if (title1 && bookIntroMap[title1] !== undefined) {
@@ -283,7 +299,8 @@ export default function Home() {
         "if you need further assistance",
         "want to explore more topics",
         "if you approve this introduction",
-        "are you ready? take the next step"
+        "are you ready? take the next step",
+        "continue"
       ];
 
       const userPhrases = customBlockPhrases
@@ -686,6 +703,51 @@ export default function Home() {
               <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động căn lề và tạo ngắt trang.</li>
               <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn.</li>
             </ul>
+          </div>
+
+          {/* Prompt Generator */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-md font-semibold text-gray-800">Prompt Generator</h2>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Nhập Prompt mẫu</label>
+              <textarea
+                rows={5}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={promptTemplate}
+                onChange={(e) => setPromptTemplate(e.target.value)}
+                placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners..."
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Tên sách mẫu trong Prompt (để thay thế)</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={promptPlaceholderBook}
+                onChange={(e) => setPromptPlaceholderBook(e.target.value)}
+                placeholder="VD: English for Beginners"
+              />
+            </div>
+            {promptTemplate && title1 && promptPlaceholderBook && (
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-green-700">✨ Prompt đã generate cho: <span className="font-bold">{title1}{title2 ? ` ${title2}` : ""}</span></label>
+                  <button
+                    onClick={() => {
+                      const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
+                      const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
+                      copyToClipboard(generated, 'generatedPrompt');
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors"
+                  >
+                    {copiedId === 'generatedPrompt' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'generatedPrompt' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <div className="w-full p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                  {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
