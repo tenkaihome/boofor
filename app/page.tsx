@@ -160,7 +160,11 @@ export default function Home() {
         "ready for next chapter",
         "would you like to continue to the next chapter",
         "would you like to proceed",
-
+        "if you need additional",
+        "if you need additional revisions",
+        "the story continue",
+        "if you need further assistance",
+        "want to explore more topics"
       ];
 
       const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
