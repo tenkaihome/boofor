@@ -31,6 +31,7 @@ export default function Home() {
   const [introductionText, setIntroductionText] = useState("");
   const [chapterKeywords, setChapterKeywords] = useState("chapter, lesson");
   const [genresText, setGenresText] = useState("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
+  const [customBlockPhrases, setCustomBlockPhrases] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
@@ -60,6 +61,9 @@ export default function Home() {
 
     const savedGenres = localStorage.getItem("bofo_genres");
     if (savedGenres) setGenresText(savedGenres);
+
+    const savedCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases");
+    if (savedCustomBlockPhrases) setCustomBlockPhrases(savedCustomBlockPhrases);
   }, []);
 
   useEffect(() => {
@@ -85,6 +89,10 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("bofo_genres", genresText);
   }, [genresText]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_customBlockPhrases", customBlockPhrases);
+  }, [customBlockPhrases]);
 
   useEffect(() => {
     if (title1 && bookIntroMap[title1] !== undefined) {
@@ -278,6 +286,12 @@ export default function Home() {
         "are you ready? take the next step"
       ];
 
+      const userPhrases = customBlockPhrases
+        .split("\n")
+        .map(p => p.trim().toLowerCase())
+        .filter(p => p.length > 0);
+      const allAiPhrases = [...aiPhrases, ...userPhrases];
+
       const chapterRegexStr = chapterKeywords
         .split(",")
         .map(k => k.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
@@ -315,7 +329,7 @@ export default function Home() {
           return;
         }
 
-        const hasAiPhrase = aiPhrases.some((phrase) => lowerText.includes(phrase));
+        const hasAiPhrase = allAiPhrases.some((phrase) => lowerText.includes(phrase));
         if (hasAiPhrase) {
           el.remove();
           return;
@@ -689,6 +703,16 @@ export default function Home() {
                 value={chapterKeywords}
                 onChange={(e) => setChapterKeywords(e.target.value)}
                 placeholder="VD: chapter, lesson, unit"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Câu/Từ khóa cần chặn (mỗi dòng 1 cụm)</label>
+              <textarea
+                rows={3}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={customBlockPhrases}
+                onChange={(e) => setCustomBlockPhrases(e.target.value)}
+                placeholder="VD: here is your translation&#10;enjoy reading"
               />
             </div>
           </div>
