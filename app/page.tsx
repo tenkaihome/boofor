@@ -146,6 +146,7 @@ export default function Home() {
         "would you like to sê a sample chapter",
         "would you like to see a sample chapter",
         "1000 words",
+        "1000+ words",
         "1100 words",
         "1200 words",
         "1300 words",
