@@ -29,6 +29,8 @@ export default function Home() {
   const [author, setAuthor] = useState("");
   const [bookListText, setBookListText] = useState("");
   const [introductionText, setIntroductionText] = useState("");
+  const [chapterKeywords, setChapterKeywords] = useState("chapter, lesson");
+  const [genresText, setGenresText] = useState("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
@@ -52,6 +54,12 @@ export default function Home() {
 
     const savedAuthorInfoMap = localStorage.getItem("bofo_authorInfoMap");
     if (savedAuthorInfoMap) setAuthorInfoMap(JSON.parse(savedAuthorInfoMap));
+
+    const savedChapterKeywords = localStorage.getItem("bofo_chapterKeywords");
+    if (savedChapterKeywords) setChapterKeywords(savedChapterKeywords);
+
+    const savedGenres = localStorage.getItem("bofo_genres");
+    if (savedGenres) setGenresText(savedGenres);
   }, []);
 
   useEffect(() => {
@@ -69,6 +77,14 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("bofo_author", author);
   }, [author]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_chapterKeywords", chapterKeywords);
+  }, [chapterKeywords]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_genres", genresText);
+  }, [genresText]);
 
   useEffect(() => {
     if (title1 && bookIntroMap[title1] !== undefined) {
@@ -262,6 +278,13 @@ export default function Home() {
         "are you ready? take the next step"
       ];
 
+      const chapterRegexStr = chapterKeywords
+        .split(",")
+        .map(k => k.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .filter(k => k.length > 0)
+        .join("|") || "chapter";
+      const chapterRegex = new RegExp(`^(${chapterRegexStr})\\s+\\d+`, "i");
+
       const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
 
       let hasSeenIntro = false;
@@ -301,7 +324,7 @@ export default function Home() {
         const wordCount = text.split(/\s+/).length;
         const isHeadingCandidate = wordCount < 15;
 
-        const isChapterHeading = el.tagName !== "LI" && /^chapter\s+\d+/i.test(lowerText);
+        const isChapterHeading = el.tagName !== "LI" && chapterRegex.test(lowerText);
         if (isChapterHeading) {
           hasSeenChapter = true;
         }
@@ -348,7 +371,7 @@ export default function Home() {
         const text = el.textContent?.trim() || "";
         const lower = text.toLowerCase();
 
-        if (/^chapter\s+\d+/i.test(lower)) {
+        if (chapterRegex.test(lower)) {
           isRecordingIntro = false;
           hasFinishedIntro = true;
         } else if (/(introduction)/i.test(lower) && text.split(/\s+/).length < 15 && !hasFinishedIntro && !isRecordingIntro) {
@@ -655,6 +678,21 @@ export default function Home() {
         {/* Cột phải: Tools lười biếng */}
         <div className="space-y-6">
 
+          {/* Settings */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-md font-semibold text-gray-800">Cài đặt Format</h2>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Từ khoá chia mục (cách nhau dấu phẩy)</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={chapterKeywords}
+                onChange={(e) => setChapterKeywords(e.target.value)}
+                placeholder="VD: chapter, lesson, unit"
+              />
+            </div>
+          </div>
+
           {/* Tool 1: Book List Manager */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex items-center gap-2 mb-2">
@@ -763,23 +801,27 @@ export default function Home() {
           {/* Genres */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-3">
             <h2 className="text-md font-semibold text-gray-800">Genres</h2>
-            <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
-              <span className="text-sm text-gray-700 truncate pr-2">Language Study / English as a Second Language</span>
-              <button
-                onClick={() => copyToClipboard("Language Study / English as a Second Language", 'genre1')}
-                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
-              >
-                {copiedId === 'genre1' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-              </button>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Nhập danh sách Genres (mỗi dòng 1 cái)</label>
+              <textarea
+                rows={3}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={genresText}
+                onChange={(e) => setGenresText(e.target.value)}
+              />
             </div>
-            <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
-              <span className="text-sm text-gray-700 truncate pr-2">Language Study / Multi-Language Phrasebooks</span>
-              <button
-                onClick={() => copyToClipboard("Language Study / Multi-Language Phrasebooks", 'genre2')}
-                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
-              >
-                {copiedId === 'genre2' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-              </button>
+            <div className="space-y-2 mt-2">
+              {genresText.split('\n').map(g => g.trim()).filter(g => g).map((genre, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+                  <span className="text-sm text-gray-700 truncate pr-2" title={genre}>{genre}</span>
+                  <button
+                    onClick={() => copyToClipboard(genre, `genre${idx}`)}
+                    className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+                  >
+                    {copiedId === `genre${idx}` ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
