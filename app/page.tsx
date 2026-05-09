@@ -165,7 +165,9 @@ export default function Home() {
         "if you need additional revisions",
         "the story continue",
         "if you need further assistance",
-        "want to explore more topics"
+        "want to explore more topics",
+        "if you approve this introduction",
+        "are you ready? take the next step"
       ];
 
       const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
@@ -240,6 +242,9 @@ export default function Home() {
           (headingEl as HTMLElement).classList.add("page-break-before");
         }
       });
+
+      // Xóa tất cả các thẻ <hr> (dòng kẻ) bị thừa do ChatGPT tạo ra
+      doc.body.querySelectorAll("hr").forEach(hr => hr.remove());
 
       // Lấy Intro text trước khi đặt lại nội dung
       let isRecordingIntro = false;
