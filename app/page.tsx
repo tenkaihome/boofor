@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -15,6 +15,12 @@ import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-re
 import { saveAs } from "file-saver";
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
@@ -24,6 +30,53 @@ export default function Home() {
   const [bookListText, setBookListText] = useState("");
   const [introductionText, setIntroductionText] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
+  const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const savedBookList = localStorage.getItem("bofo_bookList");
+    if (savedBookList) setBookListText(savedBookList);
+    
+    const savedTitle1 = localStorage.getItem("bofo_title1");
+    if (savedTitle1) setTitle1(savedTitle1);
+
+    const savedTitle2 = localStorage.getItem("bofo_title2");
+    if (savedTitle2) setTitle2(savedTitle2);
+
+    const savedAuthor = localStorage.getItem("bofo_author");
+    if (savedAuthor) setAuthor(savedAuthor);
+
+    const savedBookIntroMap = localStorage.getItem("bofo_bookIntroMap");
+    if (savedBookIntroMap) setBookIntroMap(JSON.parse(savedBookIntroMap));
+
+    const savedAuthorInfoMap = localStorage.getItem("bofo_authorInfoMap");
+    if (savedAuthorInfoMap) setAuthorInfoMap(JSON.parse(savedAuthorInfoMap));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_bookList", bookListText);
+  }, [bookListText]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_title1", title1);
+  }, [title1]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_title2", title2);
+  }, [title2]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_author", author);
+  }, [author]);
+
+  useEffect(() => {
+    if (title1 && bookIntroMap[title1] !== undefined) {
+      setIntroductionText(bookIntroMap[title1]);
+    } else {
+      setIntroductionText("");
+    }
+  }, [title1, bookIntroMap]);
 
   const editor = useEditor({
     extensions: [
@@ -56,6 +109,44 @@ export default function Home() {
       },
     },
   });
+
+  const authorEditor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      Placeholder.configure({
+        placeholder: "Dán thông tin tác giả vào đây...",
+      }),
+    ],
+    content: "",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm w-full p-3 border border-gray-200 rounded-lg focus:outline-none min-h-[100px] bg-gray-50 text-sm text-gray-900",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      if (author) {
+        setAuthorInfoMap(prev => {
+          const newMap = { ...prev, [author]: html };
+          localStorage.setItem("bofo_authorInfoMap", JSON.stringify(newMap));
+          return newMap;
+        });
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (authorEditor && author) {
+      const savedInfo = authorInfoMap[author] || "";
+      if (authorEditor.getHTML() !== savedInfo) {
+        authorEditor.commands.setContent(savedInfo);
+      }
+    } else if (authorEditor && !author) {
+      authorEditor.commands.setContent("");
+    }
+  }, [author, authorInfoMap, authorEditor]);
 
   const parsedBooks = useMemo(() => {
     if (!bookListText) return [];
@@ -104,6 +195,7 @@ export default function Home() {
     if (!isNaN(idx) && parsedBooks[idx]) {
       setTitle1(parsedBooks[idx].title1);
       setTitle2(parsedBooks[idx].title2);
+      // Intro updates via useEffect
     }
   };
 
@@ -266,7 +358,15 @@ export default function Home() {
         }
       }
 
-      setIntroductionText(extractedIntro.join(""));
+      const finalIntro = extractedIntro.join("");
+      setIntroductionText(finalIntro);
+      if (title1) {
+        setBookIntroMap(prev => {
+          const newMap = { ...prev, [title1]: finalIntro };
+          localStorage.setItem("bofo_bookIntroMap", JSON.stringify(newMap));
+          return newMap;
+        });
+      }
 
       let cleanedHtml = doc.body.innerHTML;
       editor.commands.setContent(cleanedHtml);
@@ -466,6 +566,8 @@ export default function Home() {
     }
   };
 
+  if (!isMounted) return null;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -513,6 +615,31 @@ export default function Home() {
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
             <EditorContent editor={editor} />
+          </div>
+
+          {/* Intro Extractor */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
+              <button
+                onClick={() => copyToClipboard(introductionText, 'intro', true)}
+                disabled={!introductionText}
+                className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+              >
+                {copiedId === 'intro' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'intro' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
+            {introductionText ? (
+              <div
+                className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: introductionText }}
+              />
+            ) : (
+              <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap flex items-center justify-center text-gray-400">
+                Chưa có nội dung...
+              </div>
+            )}
           </div>
 
           <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
@@ -609,31 +736,51 @@ export default function Home() {
                 </button>
               </div>
             </div>
+
+            {/* Author Info inner block */}
+            <div className="pt-4 border-t border-gray-100 mt-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-800">Thông tin Tác giả</h3>
+                <button
+                  onClick={() => {
+                    if (authorEditor) {
+                      copyToClipboard(authorEditor.getHTML(), 'authorInfo', true);
+                    }
+                  }}
+                  disabled={!author || !authorInfoMap[author]}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                >
+                  {copiedId === 'authorInfo' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'authorInfo' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              {!author && <p className="text-xs text-red-500 mb-2">Vui lòng nhập tên tác giả ở trên trước khi điền.</p>}
+              <div className={`overflow-hidden rounded-lg ${!author ? 'opacity-50 pointer-events-none' : ''}`}>
+                <EditorContent editor={authorEditor} />
+              </div>
+            </div>
           </div>
 
-          {/* Intro Extractor */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
+          {/* Genres */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+            <h2 className="text-md font-semibold text-gray-800">Genres</h2>
+            <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+              <span className="text-sm text-gray-700 truncate pr-2">Language Study / English as a Second Language</span>
               <button
-                onClick={() => copyToClipboard(introductionText, 'intro', true)}
-                disabled={!introductionText}
-                className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                onClick={() => copyToClipboard("Language Study / English as a Second Language", 'genre1')}
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
               >
-                {copiedId === 'intro' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'intro' ? 'Copied' : 'Copy'}
+                {copiedId === 'genre1' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
-            {introductionText ? (
-              <div
-                className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: introductionText }}
-              />
-            ) : (
-              <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap">
-                Chưa có nội dung...
-              </div>
-            )}
+            <div className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+              <span className="text-sm text-gray-700 truncate pr-2">Language Study / Multi-Language Phrasebooks</span>
+              <button
+                onClick={() => copyToClipboard("Language Study / Multi-Language Phrasebooks", 'genre2')}
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+              >
+                {copiedId === 'genre2' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </div>
           </div>
 
         </div>
