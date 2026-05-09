@@ -171,7 +171,7 @@ export default function Home() {
         const lowerText = text.toLowerCase();
         const wordCount = text.split(/\s+/).length;
 
-        if (el.tagName !== "LI" && /^(conclusion|kết luận)$/i.test(lowerText)) {
+        if (el.tagName !== "LI" && /^(conclusion|kết luận)\b/i.test(lowerText) && wordCount < 15) {
           lastConclusionElement = el;
           break;
         }
