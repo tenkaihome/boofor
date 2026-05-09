@@ -155,7 +155,12 @@ export default function Home() {
         "1700 words",
         "1800 words",
         "1900 words",
-        "2000 words"
+        "2000 words",
+        "would you like to",
+        "ready for next chapter",
+        "would you like to continue to the next chapter",
+        "would you like to proceed",
+
       ];
 
       const allElementsArr = Array.from(doc.body.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"));
