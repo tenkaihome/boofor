@@ -34,6 +34,7 @@ export default function Home() {
   const [customBlockPhrases, setCustomBlockPhrases] = useState("");
   const [promptTemplate, setPromptTemplate] = useState("");
   const [promptPlaceholderBook, setPromptPlaceholderBook] = useState("");
+  const [activeTab, setActiveTab] = useState<'formatter' | 'prompt'>('formatter');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
@@ -624,7 +625,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto">
+
+        {/* Tab Navigation */}
+        <div className="flex gap-1 mb-6 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 w-fit">
+          <button
+            onClick={() => setActiveTab('formatter')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'formatter'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Formatter
+          </button>
+          <button
+            onClick={() => setActiveTab('prompt')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'prompt'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Wand2 className="w-4 h-4" />
+            Prompt Generator
+          </button>
+        </div>
+
+      {activeTab === 'formatter' && (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Cột trái: Editor và Export */}
         <div className="lg:col-span-2 space-y-6">
@@ -703,51 +733,6 @@ export default function Home() {
               <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động căn lề và tạo ngắt trang.</li>
               <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn.</li>
             </ul>
-          </div>
-
-          {/* Prompt Generator */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-md font-semibold text-gray-800">Prompt Generator</h2>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Nhập Prompt mẫu</label>
-              <textarea
-                rows={5}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={promptTemplate}
-                onChange={(e) => setPromptTemplate(e.target.value)}
-                placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners..."
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Tên sách mẫu trong Prompt (để thay thế)</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={promptPlaceholderBook}
-                onChange={(e) => setPromptPlaceholderBook(e.target.value)}
-                placeholder="VD: English for Beginners"
-              />
-            </div>
-            {promptTemplate && title1 && promptPlaceholderBook && (
-              <div className="space-y-2 pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-green-700">✨ Prompt đã generate cho: <span className="font-bold">{title1}{title2 ? ` ${title2}` : ""}</span></label>
-                  <button
-                    onClick={() => {
-                      const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
-                      const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
-                      copyToClipboard(generated, 'generatedPrompt');
-                    }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors"
-                  >
-                    {copiedId === 'generatedPrompt' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'generatedPrompt' ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-                <div className="w-full p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                  {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -912,6 +897,104 @@ export default function Home() {
           </div>
 
         </div>
+      </div>
+      )}
+
+      {activeTab === 'prompt' && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Left: Prompt Template */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-indigo-600" />
+              Prompt Generator
+            </h2>
+            <p className="text-xs text-gray-500">Nhập prompt mẫu rồi chọn sách — hệ thống sẽ tự thay tên sách cho bạn.</p>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Prompt mẫu</label>
+              <textarea
+                rows={8}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={promptTemplate}
+                onChange={(e) => setPromptTemplate(e.target.value)}
+                placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ..."
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500">Tên sách mẫu trong Prompt (để thay thế)</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={promptPlaceholderBook}
+                onChange={(e) => setPromptPlaceholderBook(e.target.value)}
+                placeholder="VD: English for Beginners"
+              />
+            </div>
+          </div>
+
+          {/* Quick Book Selector */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+              Chọn sách nhanh
+            </h2>
+            <select
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+              onChange={handleSelectBook}
+              defaultValue=""
+            >
+              <option value="" disabled>-- Chọn cuốn sách --</option>
+              {parsedBooks.map((book, idx) => (
+                <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
+              ))}
+            </select>
+            {title1 && (
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+                Đang chọn: <span className="font-bold">{title1}{title2 ? ` ${title2}` : ""}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Generated Output */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-800">Kết quả</h2>
+              {promptTemplate && title1 && promptPlaceholderBook && (
+                <button
+                  onClick={() => {
+                    const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
+                    const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
+                    copyToClipboard(generated, 'generatedPrompt');
+                  }}
+                  className="flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
+                >
+                  {copiedId === 'generatedPrompt' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copiedId === 'generatedPrompt' ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              )}
+            </div>
+
+            {promptTemplate && title1 && promptPlaceholderBook ? (
+              <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
+                {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
+              </div>
+            ) : (
+              <div className="w-full p-8 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 text-center">
+                {!promptTemplate && "Nhập prompt mẫu để bắt đầu..."}
+                {promptTemplate && !promptPlaceholderBook && "Nhập tên sách mẫu cần thay thế..."}
+                {promptTemplate && promptPlaceholderBook && !title1 && "Chọn một cuốn sách từ danh sách..."}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+      )}
+
       </div>
     </div>
   );
