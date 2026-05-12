@@ -11,7 +11,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableRow } from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
-import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check } from "lucide-react";
+import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check, ChevronDown } from "lucide-react";
 import { saveAs } from "file-saver";
 
 export default function Home() {
@@ -35,6 +35,8 @@ export default function Home() {
   const [promptTemplate, setPromptTemplate] = useState("");
   const [promptPlaceholderBook, setPromptPlaceholderBook] = useState("");
   const [activeTab, setActiveTab] = useState<'formatter' | 'prompt'>('formatter');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+  const [isBookListOpen, setIsBookListOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
@@ -73,6 +75,12 @@ export default function Home() {
 
     const savedPromptPlaceholderBook = localStorage.getItem("bofo_promptPlaceholderBook");
     if (savedPromptPlaceholderBook) setPromptPlaceholderBook(savedPromptPlaceholderBook);
+
+    const savedSettingsOpen = localStorage.getItem("bofo_isSettingsOpen");
+    if (savedSettingsOpen !== null) setIsSettingsOpen(savedSettingsOpen === "true");
+
+    const savedBookListOpen = localStorage.getItem("bofo_isBookListOpen");
+    if (savedBookListOpen !== null) setIsBookListOpen(savedBookListOpen === "true");
   }, []);
 
   useEffect(() => {
@@ -94,6 +102,14 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("bofo_chapterKeywords", chapterKeywords);
   }, [chapterKeywords]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_isSettingsOpen", String(isSettingsOpen));
+  }, [isSettingsOpen]);
+
+  useEffect(() => {
+    localStorage.setItem("bofo_isBookListOpen", String(isBookListOpen));
+  }, [isBookListOpen]);
 
   useEffect(() => {
     localStorage.setItem("bofo_genres", genresText);
@@ -631,369 +647,391 @@ export default function Home() {
         <div className="flex gap-1 mb-6 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 w-fit">
           <button
             onClick={() => setActiveTab('formatter')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'formatter'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'formatter'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <FileText className="w-4 h-4" />
             Formatter
           </button>
           <button
             onClick={() => setActiveTab('prompt')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'prompt'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'prompt'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <Wand2 className="w-4 h-4" />
             Prompt Generator
           </button>
         </div>
 
-      {activeTab === 'formatter' && (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {activeTab === 'formatter' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Cột trái: Editor và Export */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="w-6 h-6 text-blue-600" />
-                Book Formatter Pro
-              </h1>
-              <p className="text-gray-500 text-sm mt-1">
-                Dán văn bản AI, tự động format thành sách và xuất Word.
-              </p>
-            </div>
+            {/* Cột trái: Editor và Export */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                    Book Formatter Pro
+                  </h1>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Dán văn bản AI, tự động format thành sách và xuất Word.
+                  </p>
+                </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={formatContent}
-                disabled={isFormatting}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-              >
-                {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                Dọn dẹp & Format
-              </button>
-              <button
-                onClick={exportToWord}
-                disabled={isExporting}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-              >
-                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Xuất File Word
-              </button>
-              <button
-                onClick={exportToPDF}
-                disabled={isExportingPDF}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-              >
-                {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                Xuất File PDF
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
-            <EditorContent editor={editor} />
-          </div>
-
-          {/* Intro Extractor */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
-              <button
-                onClick={() => copyToClipboard(introductionText, 'intro', true)}
-                disabled={!introductionText}
-                className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-              >
-                {copiedId === 'intro' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'intro' ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
-            {introductionText ? (
-              <div
-                className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: introductionText }}
-              />
-            ) : (
-              <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap flex items-center justify-center text-gray-400">
-                Chưa có nội dung...
-              </div>
-            )}
-          </div>
-
-          <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
-            <strong>📝 Hướng dẫn sử dụng:</strong>
-            <ul className="list-disc ml-5 mt-2 space-y-1">
-              <li>Copy toàn bộ văn bản từ AI Chat và dán vào khung soạn thảo trên.</li>
-              <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động căn lề và tạo ngắt trang.</li>
-              <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn.</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Cột phải: Tools lười biếng */}
-        <div className="space-y-6">
-
-          {/* Settings */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-md font-semibold text-gray-800">Cài đặt Format</h2>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Từ khoá chia mục (cách nhau dấu phẩy)</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={chapterKeywords}
-                onChange={(e) => setChapterKeywords(e.target.value)}
-                placeholder="VD: chapter, lesson, unit"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Câu/Từ khóa cần chặn (mỗi dòng 1 cụm)</label>
-              <textarea
-                rows={3}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={customBlockPhrases}
-                onChange={(e) => setCustomBlockPhrases(e.target.value)}
-                placeholder="VD: here is your translation&#10;enjoy reading"
-              />
-            </div>
-          </div>
-
-          {/* Tool 1: Book List Manager */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-md font-semibold text-gray-800">Quản lý Danh sách Sách</h2>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Danh sách sách (Mỗi dòng 1 cuốn, dùng dấu "-" để tách 2 phần)</label>
-              <textarea
-                rows={4}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-                placeholder="Ví dụ:\nSách 1 phần A - Sách 1 phần B\nSách số 2 - Cực kỳ hay"
-                value={bookListText}
-                onChange={(e) => setBookListText(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Chọn Sách để điền Tự Động</label>
-              <select
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-                onChange={handleSelectBook}
-                defaultValue=""
-              >
-                <option value="" disabled>-- Chọn cuốn sách đang làm --</option>
-                {parsedBooks.map((book, idx) => (
-                  <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Book Cover Info (Syncs with the editor export) */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-md font-semibold text-gray-800">Thông tin Trang Bìa</h2>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Tên sách (Phần 1)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                  value={title1}
-                  onChange={(e) => setTitle1(e.target.value)}
-                />
-                <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
-                  {copiedId === 'title1' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Tên sách (Phần 2)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                  value={title2}
-                  onChange={(e) => setTitle2(e.target.value)}
-                />
-                <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
-                  {copiedId === 'title2' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Tác giả</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                />
-                <button onClick={() => copyToClipboard(author, 'author')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
-                  {copiedId === 'author' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Author Info inner block */}
-            <div className="pt-4 border-t border-gray-100 mt-4 space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-800">Thông tin Tác giả</h3>
-                <button
-                  onClick={() => {
-                    if (authorEditor) {
-                      copyToClipboard(authorEditor.getHTML(), 'authorInfo', true);
-                    }
-                  }}
-                  disabled={!author || !authorInfoMap[author]}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-                >
-                  {copiedId === 'authorInfo' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'authorInfo' ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              {!author && <p className="text-xs text-red-500 mb-2">Vui lòng nhập tên tác giả ở trên trước khi điền.</p>}
-              <div className={`overflow-hidden rounded-lg ${!author ? 'opacity-50 pointer-events-none' : ''}`}>
-                <EditorContent editor={authorEditor} />
-              </div>
-            </div>
-          </div>
-
-          {/* Genres */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-3">
-            <h2 className="text-md font-semibold text-gray-800">Genres</h2>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Nhập danh sách Genres (mỗi dòng 1 cái)</label>
-              <textarea
-                rows={3}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={genresText}
-                onChange={(e) => setGenresText(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 mt-2">
-              {genresText.split('\n').map(g => g.trim()).filter(g => g).map((genre, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
-                  <span className="text-sm text-gray-700 truncate pr-2" title={genre}>{genre}</span>
+                <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => copyToClipboard(genre, `genre${idx}`)}
-                    className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+                    onClick={formatContent}
+                    disabled={isFormatting}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
                   >
-                    {copiedId === `genre${idx}` ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                    {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                    Dọn dẹp & Format
+                  </button>
+                  <button
+                    onClick={exportToWord}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+                  >
+                    {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Xuất File Word
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    disabled={isExportingPDF}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+                  >
+                    {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                    Xuất File PDF
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </div>
-      )}
-
-      {activeTab === 'prompt' && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Left: Prompt Template */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-indigo-600" />
-              Prompt Generator
-            </h2>
-            <p className="text-xs text-gray-500">Nhập prompt mẫu rồi chọn sách — hệ thống sẽ tự thay tên sách cho bạn.</p>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Prompt mẫu</label>
-              <textarea
-                rows={8}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={promptTemplate}
-                onChange={(e) => setPromptTemplate(e.target.value)}
-                placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ..."
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Tên sách mẫu trong Prompt (để thay thế)</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-                value={promptPlaceholderBook}
-                onChange={(e) => setPromptPlaceholderBook(e.target.value)}
-                placeholder="VD: English for Beginners"
-              />
-            </div>
-          </div>
-
-          {/* Quick Book Selector */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-md font-semibold text-gray-800 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
-              Chọn sách nhanh
-            </h2>
-            <select
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-              onChange={handleSelectBook}
-              defaultValue=""
-            >
-              <option value="" disabled>-- Chọn cuốn sách --</option>
-              {parsedBooks.map((book, idx) => (
-                <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
-              ))}
-            </select>
-            {title1 && (
-              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
-                Đang chọn: <span className="font-bold">{title1}{title2 ? ` ${title2}` : ""}</span>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Right: Generated Output */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800">Kết quả</h2>
-              {promptTemplate && title1 && promptPlaceholderBook && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-4">
+                <EditorContent editor={editor} />
+              </div>
+
+              {/* Intro Extractor */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-md font-semibold text-gray-800">Trích xuất Introduction</h2>
+                  <button
+                    onClick={() => copyToClipboard(introductionText, 'intro', true)}
+                    disabled={!introductionText}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {copiedId === 'intro' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'intro' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Sau khi ấn "Dọn dẹp & Format", phần giới thiệu sẽ tự động xuất hiện ở đây.</p>
+                {introductionText ? (
+                  <div
+                    className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: introductionText }}
+                  />
+                ) : (
+                  <div className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto whitespace-pre-wrap flex items-center justify-center text-gray-400">
+                    Chưa có nội dung...
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
+                <strong>📝 Hướng dẫn sử dụng:</strong>
+                <ul className="list-disc ml-5 mt-2 space-y-1">
+                  <li>Copy toàn bộ văn bản từ AI Chat và dán vào khung soạn thảo trên.</li>
+                  <li>Bấm <strong>Dọn dẹp & Format</strong> để công cụ tự động căn lề và tạo ngắt trang.</li>
+                  <li>Bấm <strong>Xuất File Word</strong> để tải về file <code>.docx</code> chuẩn.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Cột phải: Tools lười biếng */}
+            <div className="space-y-6">
+
+              {/* Settings */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <button
-                  onClick={() => {
-                    const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
-                    const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
-                    copyToClipboard(generated, 'generatedPrompt');
-                  }}
-                  className="flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  className="flex items-center justify-between w-full"
                 >
-                  {copiedId === 'generatedPrompt' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copiedId === 'generatedPrompt' ? 'Copied!' : 'Copy Prompt'}
+                  <h2 className="text-md font-semibold text-gray-800">Cài đặt Format</h2>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} />
                 </button>
-              )}
+                {!isSettingsOpen && (
+                  <p className="text-xs text-gray-400 mt-1">Từ khoá chia mục · Câu cần chặn</p>
+                )}
+                {isSettingsOpen && (
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Từ khoá chia mục (cách nhau dấu phẩy)</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                        value={chapterKeywords}
+                        onChange={(e) => setChapterKeywords(e.target.value)}
+                        placeholder="VD: chapter, lesson, unit"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Câu/Từ khóa cần chặn (mỗi dòng 1 cụm)</label>
+                      <textarea
+                        rows={3}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                        value={customBlockPhrases}
+                        onChange={(e) => setCustomBlockPhrases(e.target.value)}
+                        placeholder="VD: here is your translation&#10;enjoy reading"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tool 1: Book List Manager */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <button
+                  onClick={() => setIsBookListOpen(!isBookListOpen)}
+                  className="flex items-center justify-between w-full"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-indigo-600" />
+                    <h2 className="text-md font-semibold text-gray-800">Quản lý Danh sách Sách</h2>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isBookListOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {!isBookListOpen && (
+                  <p className="text-xs text-gray-400 mt-1">Nhập và quản lý danh sách sách</p>
+                )}
+
+                {isBookListOpen && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500">Danh sách sách (Mỗi dòng 1 cuốn, dùng dấu "-" để tách 2 phần)</label>
+                    <textarea
+                      rows={4}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                      placeholder="Ví dụ:\nSách 1 phần A - Sách 1 phần B\nSách số 2 - Cực kỳ hay"
+                      value={bookListText}
+                      onChange={(e) => setBookListText(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Chọn Sách để điền Tự Động</label>
+                  <select
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                    onChange={handleSelectBook}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>-- Chọn cuốn sách đang làm --</option>
+                    {parsedBooks.map((book, idx) => (
+                      <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Book Cover Info (Syncs with the editor export) */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <h2 className="text-md font-semibold text-gray-800">Thông tin Trang Bìa</h2>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Tên sách (Phần 1)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      value={title1}
+                      onChange={(e) => setTitle1(e.target.value)}
+                    />
+                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
+                      {copiedId === 'title1' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Tên sách (Phần 2)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      value={title2}
+                      onChange={(e) => setTitle2(e.target.value)}
+                    />
+                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
+                      {copiedId === 'title2' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Tác giả</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      value={author}
+                      onChange={(e) => setAuthor(e.target.value)}
+                    />
+                    <button onClick={() => copyToClipboard(author, 'author')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy">
+                      {copiedId === 'author' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Author Info inner block */}
+                <div className="pt-4 border-t border-gray-100 mt-4 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-800">Thông tin Tác giả</h3>
+                    <button
+                      onClick={() => {
+                        if (authorEditor) {
+                          copyToClipboard(authorEditor.getHTML(), 'authorInfo', true);
+                        }
+                      }}
+                      disabled={!author || !authorInfoMap[author]}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {copiedId === 'authorInfo' ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />} {copiedId === 'authorInfo' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  {!author && <p className="text-xs text-red-500 mb-2">Vui lòng nhập tên tác giả ở trên trước khi điền.</p>}
+                  <div className={`overflow-hidden rounded-lg ${!author ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <EditorContent editor={authorEditor} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Genres */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h2 className="text-md font-semibold text-gray-800">Genres</h2>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Nhập danh sách Genres (mỗi dòng 1 cái)</label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                    value={genresText}
+                    onChange={(e) => setGenresText(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 mt-2">
+                  {genresText.split('\n').map(g => g.trim()).filter(g => g).map((genre, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+                      <span className="text-sm text-gray-700 truncate pr-2" title={genre}>{genre}</span>
+                      <button
+                        onClick={() => copyToClipboard(genre, `genre${idx}`)}
+                        className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+                      >
+                        {copiedId === `genre${idx}` ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'prompt' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Left: Prompt Template */}
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <Wand2 className="w-5 h-5 text-indigo-600" />
+                  Prompt Generator
+                </h2>
+                <p className="text-xs text-gray-500">Nhập prompt mẫu rồi chọn sách — hệ thống sẽ tự thay tên sách cho bạn.</p>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Prompt mẫu</label>
+                  <textarea
+                    rows={8}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                    value={promptTemplate}
+                    onChange={(e) => setPromptTemplate(e.target.value)}
+                    placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ..."
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Tên sách mẫu trong Prompt (để thay thế)</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                    value={promptPlaceholderBook}
+                    onChange={(e) => setPromptPlaceholderBook(e.target.value)}
+                    placeholder="VD: English for Beginners"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Book Selector */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <h2 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                  Chọn sách nhanh
+                </h2>
+                <select
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                  onChange={handleSelectBook}
+                  defaultValue=""
+                >
+                  <option value="" disabled>-- Chọn cuốn sách --</option>
+                  {parsedBooks.map((book, idx) => (
+                    <option key={idx} value={idx}>{idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}</option>
+                  ))}
+                </select>
+                {title1 && (
+                  <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+                    Đang chọn: <span className="font-bold">{title1}{title2 ? ` ${title2}` : ""}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {promptTemplate && title1 && promptPlaceholderBook ? (
-              <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
-                {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
-              </div>
-            ) : (
-              <div className="w-full p-8 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 text-center">
-                {!promptTemplate && "Nhập prompt mẫu để bắt đầu..."}
-                {promptTemplate && !promptPlaceholderBook && "Nhập tên sách mẫu cần thay thế..."}
-                {promptTemplate && promptPlaceholderBook && !title1 && "Chọn một cuốn sách từ danh sách..."}
-              </div>
-            )}
-          </div>
-        </div>
+            {/* Right: Generated Output */}
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-800">Kết quả</h2>
+                  {promptTemplate && title1 && promptPlaceholderBook && (
+                    <button
+                      onClick={() => {
+                        const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
+                        const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
+                        copyToClipboard(generated, 'generatedPrompt');
+                      }}
+                      className="flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      {copiedId === 'generatedPrompt' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copiedId === 'generatedPrompt' ? 'Copied!' : 'Copy Prompt'}
+                    </button>
+                  )}
+                </div>
 
-      </div>
-      )}
+                {promptTemplate && title1 && promptPlaceholderBook ? (
+                  <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
+                    {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
+                  </div>
+                ) : (
+                  <div className="w-full p-8 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 text-center">
+                    {!promptTemplate && "Nhập prompt mẫu để bắt đầu..."}
+                    {promptTemplate && !promptPlaceholderBook && "Nhập tên sách mẫu cần thay thế..."}
+                    {promptTemplate && promptPlaceholderBook && !title1 && "Chọn một cuốn sách từ danh sách..."}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
 
       </div>
     </div>
