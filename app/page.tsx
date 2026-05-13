@@ -529,7 +529,7 @@ export default function Home() {
       if (!response.ok) throw new Error("Failed to export");
 
       const blob = await response.blob();
-      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.trim() : "Book_Exported";
+      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim() : "Book_Exported";
 
       // Tự động copy tên sách vào clipboard
       try {
@@ -553,7 +553,7 @@ export default function Home() {
 
     try {
       const processedHtml = getProcessedHtml();
-      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.trim() : "Book_Exported";
+      const fullTitle = title1 ? `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim() : "Book_Exported";
 
       try {
         await navigator.clipboard.writeText(fullTitle);
@@ -848,7 +848,7 @@ export default function Home() {
                       value={title1}
                       onChange={(e) => setTitle1(e.target.value)}
                     />
-                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
+                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim(), 'title1')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
                       {copiedId === 'title1' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
@@ -863,7 +863,7 @@ export default function Home() {
                       value={title2}
                       onChange={(e) => setTitle2(e.target.value)}
                     />
-                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.trim(), 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
+                    <button onClick={() => copyToClipboard(`${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim(), 'title2')} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Copy Full Title">
                       {copiedId === 'title2' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
@@ -1005,7 +1005,7 @@ export default function Home() {
                   {promptTemplate && title1 && promptPlaceholderBook && (
                     <button
                       onClick={() => {
-                        const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.trim();
+                        const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim();
                         const generated = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
                         copyToClipboard(generated, 'generatedPrompt');
                       }}
@@ -1018,7 +1018,7 @@ export default function Home() {
 
                 {promptTemplate && title1 && promptPlaceholderBook ? (
                   <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
-                    {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.trim())}
+                    {promptTemplate.replaceAll(promptPlaceholderBook, `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, ' ').trim())}
                   </div>
                 ) : (
                   <div className="w-full p-8 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 text-center">
