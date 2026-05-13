@@ -409,6 +409,38 @@ export default function Home() {
       // Xóa tất cả các thẻ <hr> (dòng kẻ) bị thừa do ChatGPT tạo ra
       doc.body.querySelectorAll("hr").forEach(hr => hr.remove());
 
+      // Xóa các phần tử rỗng/khoảng trắng trước heading có ngắt trang để tránh trang trắng
+      doc.body.querySelectorAll(".page-break-before").forEach(heading => {
+        let prev = heading.previousElementSibling;
+        while (prev) {
+          const text = prev.textContent?.trim() || "";
+          const tagName = prev.tagName;
+          // Chỉ xóa các thẻ p, div, span, br, h2-h6 rỗng (không xóa table, img, etc.)
+          if (!text && ["P", "DIV", "SPAN", "BR", "H2", "H3", "H4", "H5", "H6"].includes(tagName) && !prev.querySelector("img, table")) {
+            const toRemove = prev;
+            prev = prev.previousElementSibling;
+            toRemove.remove();
+          } else {
+            break;
+          }
+        }
+      });
+
+      // Xóa các đoạn trống liên tiếp (giữ tối đa 1 đoạn trống giữa nội dung)
+      const allChildren = Array.from(doc.body.children);
+      let consecutiveEmpty = 0;
+      for (const child of allChildren) {
+        const text = child.textContent?.trim() || "";
+        if (!text && !child.querySelector("img, table, hr") && ["P", "DIV", "SPAN", "BR"].includes(child.tagName)) {
+          consecutiveEmpty++;
+          if (consecutiveEmpty > 1) {
+            child.remove();
+          }
+        } else {
+          consecutiveEmpty = 0;
+        }
+      }
+
       // Lấy Intro text trước khi đặt lại nội dung
       let isRecordingIntro = false;
       let hasFinishedIntro = false;
