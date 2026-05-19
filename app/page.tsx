@@ -11,7 +11,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableRow } from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
-import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check, ChevronDown } from "lucide-react";
+import { Save, Wand2, FileText, Loader2, Copy, BookOpen, Check, ChevronDown, List, X } from "lucide-react";
 import { saveAs } from "file-saver";
 
 export default function Home() {
@@ -38,6 +38,9 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const [isBookListOpen, setIsBookListOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [detectedChapters, setDetectedChapters] = useState<string[]>([]);
+  const [isChapterListOpen, setIsChapterListOpen] = useState(false);
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
   const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
@@ -352,6 +355,28 @@ export default function Home() {
         }
       }
 
+      // Pre-pass: Lọc và tìm các thẻ heading chapter để loại bỏ lặp (chỉ giữ cái cuối cùng của 1 series lặp)
+      const chapterCandidates: { el: Element, prefix: string }[] = [];
+      allElementsArr.forEach((el) => {
+        const text = el.textContent?.trim() || "";
+        const lowerText = text.toLowerCase();
+        const wordCount = text.split(/\s+/).length;
+        if (el.tagName !== "LI" && chapterRegex.test(lowerText) && wordCount < 15) {
+          const match = lowerText.match(chapterRegex);
+          if (match) {
+            chapterCandidates.push({ el, prefix: match[0].trim() });
+          }
+        }
+      });
+
+      const duplicateChaptersToRemove = new Set<Element>();
+      for (let i = 0; i < chapterCandidates.length - 1; i++) {
+        // Nếu 2 heading liền nhau có chung prefix (vd: cùng là "chapter 1"), xóa cái đứng trước (giữ cái sau)
+        if (chapterCandidates[i].prefix === chapterCandidates[i + 1].prefix) {
+          duplicateChaptersToRemove.add(chapterCandidates[i].el);
+        }
+      }
+
       allElementsArr.forEach((el) => {
         const text = el.textContent?.trim() || "";
         const lowerText = text.toLowerCase();
@@ -365,6 +390,11 @@ export default function Home() {
 
         const hasAiPhrase = allAiPhrases.some((phrase) => lowerText.includes(phrase));
         if (hasAiPhrase) {
+          el.remove();
+          return;
+        }
+
+        if (duplicateChaptersToRemove.has(el)) {
           el.remove();
           return;
         }
@@ -470,6 +500,11 @@ export default function Home() {
           return newMap;
         });
       }
+
+      const chapterHeadings = Array.from(doc.body.querySelectorAll(".page-break-before"))
+        .map(el => el.textContent?.trim() || "")
+        .filter(text => text.length > 0);
+      setDetectedChapters(chapterHeadings);
 
       let cleanedHtml = doc.body.innerHTML;
       editor.commands.setContent(cleanedHtml);
@@ -716,14 +751,25 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={formatContent}
-                    disabled={isFormatting}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
-                  >
-                    {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                    Dọn dẹp & Format
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={formatContent}
+                      disabled={isFormatting}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70"
+                    >
+                      {isFormatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                      Dọn dẹp & Format
+                    </button>
+                    {detectedChapters.length > 0 && (
+                      <button
+                        onClick={() => setIsChapterListOpen(true)}
+                        className="flex items-center justify-center px-3 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors shadow-sm"
+                        title="Kiểm tra các mục đã nhận diện"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={exportToWord}
                     disabled={isExporting}
@@ -1066,6 +1112,40 @@ export default function Home() {
         )}
 
       </div>
+
+      {/* Chapter List Popup */}
+      {isChapterListOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <List className="w-5 h-5 text-indigo-600" />
+                Các mục đã nhận diện ({detectedChapters.length})
+              </h2>
+              <button
+                onClick={() => setIsChapterListOpen(false)}
+                className="p-1 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto">
+              {detectedChapters.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Chưa tìm thấy mục nào.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {detectedChapters.map((chapter, idx) => (
+                    <li key={idx} className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium">
+                      {chapter}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
