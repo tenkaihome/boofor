@@ -41,6 +41,8 @@ export default function Home() {
 
   const [detectedChapters, setDetectedChapters] = useState<string[]>([]);
   const [isChapterListOpen, setIsChapterListOpen] = useState(false);
+  const [isChapterListVisible, setIsChapterListVisible] = useState(false);
+  const [buttonPos, setButtonPos] = useState({ x: 0, y: 0 });
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
   const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
@@ -105,6 +107,23 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("bofo_chapterKeywords", chapterKeywords);
   }, [chapterKeywords]);
+
+  useEffect(() => {
+    if (isChapterListOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isChapterListOpen]);
 
   useEffect(() => {
     localStorage.setItem("bofo_isSettingsOpen", String(isSettingsOpen));
@@ -762,7 +781,12 @@ export default function Home() {
                     </button>
                     {detectedChapters.length > 0 && (
                       <button
-                        onClick={() => setIsChapterListOpen(true)}
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setButtonPos({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                          setIsChapterListOpen(true);
+                          setTimeout(() => setIsChapterListVisible(true), 10);
+                        }}
                         className="flex items-center justify-center px-3 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors shadow-sm"
                         title="Kiểm tra các mục đã nhận diện"
                       >
@@ -1115,32 +1139,41 @@ export default function Home() {
 
       {/* Chapter List Popup */}
       {isChapterListOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <List className="w-5 h-5 text-indigo-600" />
-                Các mục đã nhận diện ({detectedChapters.length})
-              </h2>
-              <button
-                onClick={() => setIsChapterListOpen(false)}
-                className="p-1 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4 overflow-y-auto">
-              {detectedChapters.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">Chưa tìm thấy mục nào.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {detectedChapters.map((chapter, idx) => (
-                    <li key={idx} className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium">
-                      {chapter}
-                    </li>
-                  ))}
-                </ul>
-              )}
+        <div className={`fixed inset-0 z-50 transition-colors duration-300 ${isChapterListVisible ? 'bg-black/50 backdrop-blur-sm' : 'bg-transparent backdrop-blur-none'}`}>
+          <div 
+            className={`absolute inset-0 flex items-center justify-center p-4 pointer-events-none transition-all duration-300
+              ${isChapterListVisible ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}
+            style={{ transformOrigin: `${buttonPos.x}px ${buttonPos.y}px` }}
+          >
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] pointer-events-auto">
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <List className="w-5 h-5 text-indigo-600" />
+                  Các mục đã nhận diện ({detectedChapters.length})
+                </h2>
+                <button
+                  onClick={() => {
+                    setIsChapterListVisible(false);
+                    setTimeout(() => setIsChapterListOpen(false), 300);
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto">
+                {detectedChapters.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Chưa tìm thấy mục nào.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {detectedChapters.map((chapter, idx) => (
+                      <li key={idx} className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium">
+                        {chapter}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>
