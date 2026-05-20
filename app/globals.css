@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+@import "../styles/editor.css";
+@import "../styles/tabs.css";
+@import "../styles/modal.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -25,11 +30,3 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Tiptap Placeholder */
-.tiptap p.is-editor-empty:first-child::before {
-  color: #9ca3af; /* Tailwind gray-400 */
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-}
