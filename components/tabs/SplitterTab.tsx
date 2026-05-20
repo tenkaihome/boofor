@@ -34,6 +34,55 @@ const FIELD_CONFIGS: FieldConfig[] = [
   { label: "TAX", colIndex: 16 }
 ];
 
+const US_STATES: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+  MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
+  MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
+  SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+  VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+  DC: "District of Columbia", PR: "Puerto Rico"
+};
+
+function processAddressItems(items: string[]): string[] {
+  const result: string[] = [];
+  const stateZipRegex = /^([a-zA-Z]{2})\s+(\d+(?:\s*-\s*\d+)?)$/;
+  const zipPlus4Regex = /^(\d+)\s*-\s*(\d+)$/;
+
+  for (const item of items) {
+    const trimmed = item.trim();
+    const match = trimmed.match(stateZipRegex);
+    if (match) {
+      const stateAbbr = match[1].toUpperCase();
+      const zipCode = match[2];
+      const stateName = US_STATES[stateAbbr] || match[1];
+      result.push(stateName);
+      
+      const zipMatch = zipCode.match(zipPlus4Regex);
+      if (zipMatch) {
+        result.push(zipMatch[1]);
+        result.push(zipMatch[2]);
+      } else {
+        result.push(zipCode);
+      }
+    } else {
+      const zipMatch = trimmed.match(zipPlus4Regex);
+      if (zipMatch) {
+        result.push(zipMatch[1]);
+        result.push(zipMatch[2]);
+      } else {
+        result.push(trimmed);
+      }
+    }
+  }
+  return result;
+}
+
+
 interface TotpDisplayProps {
   secret: string;
   copiedId: string | null;
@@ -126,6 +175,11 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
   // Split cells by tab character
   const columns = activeRow ? activeRow.split("\t").map(col => col.trim()) : [];
 
+  const visibleConfigs = FIELD_CONFIGS.filter(config => {
+    const rawValue = columns[config.colIndex] || "";
+    return rawValue.trim() !== "";
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Input & Control Section */}
@@ -162,26 +216,30 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
 
       {/* Grid of Parsed Cards */}
       {splitterInput ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {FIELD_CONFIGS.map((config, cardIdx) => {
-            const rawValue = columns[config.colIndex] || "";
-            // Split if splitChar exists
-            const items = config.splitChar && rawValue
-              ? rawValue.split(config.splitChar).map(item => item.trim()).filter(item => item)
-              : [rawValue];
+        visibleConfigs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {visibleConfigs.map((config, cardIdx) => {
+              const rawValue = columns[config.colIndex] || "";
+              // Split if splitChar exists
+              let items = config.splitChar && rawValue
+                ? rawValue.split(config.splitChar).map(item => item.trim()).filter(item => item)
+                : [rawValue];
 
-            return (
-              <div
-                key={cardIdx}
-                className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between"
-              >
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-                    {config.label}
-                  </h3>
-                  <div className="space-y-2">
-                    {rawValue ? (
-                      items.map((item, itemIdx) => {
+              if (config.label === "ADRESS") {
+                items = processAddressItems(items);
+              }
+
+              return (
+                <div
+                  key={cardIdx}
+                  className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between"
+                >
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+                      {config.label}
+                    </h3>
+                    <div className="space-y-2">
+                      {items.map((item, itemIdx) => {
                         const copyKey = `splitter-${config.label}-${itemIdx}`;
                         return (
                           <button
@@ -200,27 +258,27 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
                             </span>
                           </button>
                         );
-                      })
-                    ) : (
-                      <div className="text-sm text-gray-400 italic px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
-                        (Trống)
-                      </div>
+                      })}
+                    </div>
+
+                    {/* Render Live TOTP code if it is the 2FA key field */}
+                    {config.label === "2FA" && rawValue && (
+                      <TotpDisplay
+                        secret={rawValue}
+                        copiedId={copiedId}
+                        handleCopy={handleCopy}
+                      />
                     )}
                   </div>
-
-                  {/* Render Live TOTP code if it is the 2FA key field */}
-                  {config.label === "2FA" && rawValue && (
-                    <TotpDisplay
-                      secret={rawValue}
-                      copiedId={copiedId}
-                      handleCopy={handleCopy}
-                    />
-                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400 text-sm">
+            Tất cả các cột dữ liệu đều trống.
+          </div>
+        )
       ) : (
         <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400 text-sm">
           Vui lòng dán dữ liệu hàng từ Sheet để bắt đầu phân tách.
