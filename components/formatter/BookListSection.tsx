@@ -14,6 +14,8 @@ interface BookListSectionProps {
   setBookListText: (val: string) => void;
   parsedBooks: Book[];
   handleSelectBook: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  title1: string;
+  title2: string;
 }
 
 export const BookListSection: React.FC<BookListSectionProps> = ({
@@ -23,6 +25,8 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
   setBookListText,
   parsedBooks,
   handleSelectBook,
+  title1,
+  title2,
 }) => {
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -59,20 +63,27 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
 
       <div className="space-y-1">
         <label className="text-xs font-medium text-gray-500">Chọn Sách để điền Tự Động</label>
-        <select
-          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-          onChange={handleSelectBook}
-          defaultValue=""
-        >
-          <option value="" disabled>
-            -- Chọn cuốn sách đang làm --
-          </option>
-          {parsedBooks.map((book, idx) => (
-            <option key={idx} value={idx}>
-              {idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}
-            </option>
-          ))}
-        </select>
+        {(() => {
+          const selectedIdx = parsedBooks.findIndex(
+            (book) => book.title1 === title1 && book.title2 === title2
+          );
+          return (
+            <select
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+              onChange={handleSelectBook}
+              value={selectedIdx >= 0 ? selectedIdx : ""}
+            >
+              <option value="" disabled>
+                -- Chọn cuốn sách đang làm --
+              </option>
+              {parsedBooks.map((book, idx) => (
+                <option key={idx} value={idx}>
+                  {idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}
+                </option>
+              ))}
+            </select>
+          );
+        })()}
       </div>
     </div>
   );

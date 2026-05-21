@@ -146,6 +146,8 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
           setBookListText={setBookListText}
           parsedBooks={parsedBooks}
           handleSelectBook={handleSelectBook}
+          title1={title1}
+          title2={title2}
         />
 
         <BookCoverSection

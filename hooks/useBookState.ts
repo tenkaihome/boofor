@@ -106,6 +106,18 @@ export const useBookState = () => {
   }, [splitterInput, isMounted]);
 
   useEffect(() => {
+    if (isMounted && splitterInput) {
+      const rows = splitterInput.split("\n").map(r => r.trim()).filter(r => r);
+      const activeRow = rows[0] || "";
+      const columns = activeRow ? activeRow.split("\t").map(col => col.trim()) : [];
+      const nameVal = columns[9];
+      if (nameVal && nameVal.trim()) {
+        setAuthor(nameVal.trim());
+      }
+    }
+  }, [splitterInput, isMounted]);
+
+  useEffect(() => {
     if (isMounted) localStorage.setItem("bofo_title2", title2);
   }, [title2, isMounted]);
 

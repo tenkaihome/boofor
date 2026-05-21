@@ -79,20 +79,27 @@ export const PromptTab: React.FC<PromptTabProps> = ({
             <BookOpen className="w-5 h-5 text-indigo-600" />
             Chọn sách nhanh
           </h2>
-          <select
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-            onChange={handleSelectBook}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              -- Chọn cuốn sách --
-            </option>
-            {parsedBooks.map((book, idx) => (
-              <option key={idx} value={idx}>
-                {idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}
-              </option>
-            ))}
-          </select>
+          {(() => {
+            const selectedIdx = parsedBooks.findIndex(
+              (book) => book.title1 === title1 && book.title2 === title2
+            );
+            return (
+              <select
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                onChange={handleSelectBook}
+                value={selectedIdx >= 0 ? selectedIdx : ""}
+              >
+                <option value="" disabled>
+                  -- Chọn cuốn sách --
+                </option>
+                {parsedBooks.map((book, idx) => (
+                  <option key={idx} value={idx}>
+                    {idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}
+                  </option>
+                ))}
+              </select>
+            );
+          })()}
           {title1 && (
             <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
               Đang chọn: <span className="font-bold">{fullTitle}</span>
