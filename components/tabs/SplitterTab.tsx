@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Copy, Check, TableProperties } from "lucide-react";
+import { Trash2, Copy, Check, TableProperties, ExternalLink } from "lucide-react";
 import { generateTOTP } from "@/utils/totp";
 
 interface SplitterTabProps {
@@ -220,10 +220,15 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {visibleConfigs.map((config, cardIdx) => {
               const rawValue = columns[config.colIndex] || "";
-              // Split if splitChar exists
-              let items = config.splitChar && rawValue
-                ? rawValue.split(config.splitChar).map(item => item.trim()).filter(item => item)
-                : [rawValue];
+              // Split if splitChar exists, or if value contains '|'
+              let items: string[] = [];
+              if (config.splitChar && rawValue.includes(config.splitChar)) {
+                items = rawValue.split(config.splitChar).map(item => item.trim()).filter(item => item);
+              } else if (rawValue.includes("|")) {
+                items = rawValue.split("|").map(item => item.trim()).filter(item => item);
+              } else {
+                items = [rawValue];
+              }
 
               if (config.label === "ADRESS") {
                 items = processAddressItems(items);
@@ -238,25 +243,38 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
                       {config.label}
                     </h3>
-                    <div className="space-y-2">
+                     <div className="space-y-2">
                       {items.map((item, itemIdx) => {
                         const copyKey = `splitter-${config.label}-${itemIdx}`;
+                        const isLink = item.startsWith("http://") || item.startsWith("https://");
                         return (
-                          <button
-                            key={itemIdx}
-                            onClick={() => handleCopy(item, copyKey)}
-                            className="w-full flex items-center justify-between gap-2 bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 border border-gray-200 hover:border-indigo-300 rounded-lg px-3 py-2 text-sm text-gray-800 font-medium transition-all cursor-pointer text-left group"
-                            title={`Click to copy: ${item}`}
-                          >
-                            <span className="flex-1 min-w-0 truncate select-all">{item}</span>
-                            <span className="shrink-0 text-gray-400 group-hover:text-indigo-600 transition-colors">
-                              {copiedId === copyKey ? (
-                                <Check className="w-4 h-4 text-green-600 animate-scale" />
-                              ) : (
-                                <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100" />
-                              )}
-                            </span>
-                          </button>
+                          <div key={itemIdx} className="flex items-center gap-2 w-full">
+                            <button
+                              onClick={() => handleCopy(item, copyKey)}
+                              className="flex-1 min-w-0 flex items-center justify-between gap-2 bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 border border-gray-200 hover:border-indigo-300 rounded-lg px-3 py-2 text-sm text-gray-800 font-medium transition-all cursor-pointer text-left group"
+                              title={`Click to copy: ${item}`}
+                            >
+                              <span className="flex-1 min-w-0 truncate select-all">{item}</span>
+                              <span className="shrink-0 text-gray-400 group-hover:text-indigo-600 transition-colors">
+                                {copiedId === copyKey ? (
+                                  <Check className="w-4 h-4 text-green-600 animate-scale" />
+                                ) : (
+                                  <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                                )}
+                              </span>
+                            </button>
+                            {isLink && (
+                              <a
+                                href={item}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 border border-gray-200 hover:border-indigo-300 text-gray-400 hover:text-indigo-600 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                                title="Mở liên kết trong tab mới"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
