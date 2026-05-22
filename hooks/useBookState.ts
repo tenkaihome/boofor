@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -13,12 +13,39 @@ import { copyToClipboard } from "@/utils/clipboard";
 import { cleanAndFormatHtml, getProcessedHtml } from "@/utils/formatter";
 import { exportToWord, exportToPDF } from "@/services/exportService";
 
+export interface AuthorTab {
+  id: string;
+  title1: string;
+  title2: string;
+  author: string;
+  bookListText: string;
+  introductionText: string;
+  chapterKeywords: string;
+  genresText: string;
+  customBlockPhrases: string;
+  promptTemplate: string;
+  promptPlaceholderBook: string;
+  splitterInput: string;
+  isSettingsOpen: boolean;
+  isBookListOpen: boolean;
+  detectedChapters: string[];
+  editorContent: string;
+  authorEditorContent: string;
+  bookIntroMap: Record<string, string>;
+  activeSubTab: "formatter" | "prompt" | "splitter";
+}
+
 export const useBookState = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
 
+  // Tab State
+  const [tabs, setTabs] = useState<AuthorTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+
+  // Flat Active State variables (sourced from active tab)
   const [title1, setTitle1] = useState("");
   const [title2, setTitle2] = useState("");
   const [author, setAuthor] = useState("");
@@ -45,66 +72,108 @@ export const useBookState = () => {
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
   const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
 
-  // Initialize from LocalStorage
+  const editorRestoredRef = useRef(false);
+  const authorEditorRestoredRef = useRef(false);
+
+  // Initialize from LocalStorage and migrate old flat state if necessary
   useEffect(() => {
     setIsMounted(true);
 
-    const savedBookList = localStorage.getItem("bofo_bookList");
-    if (savedBookList) setBookListText(savedBookList);
+    const savedTabs = localStorage.getItem("bofo_tabs");
+    const savedActiveTabId = localStorage.getItem("bofo_activeTabId");
 
-    const savedTitle1 = localStorage.getItem("bofo_title1");
-    if (savedTitle1) setTitle1(savedTitle1);
+    const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
+    setAuthorInfoMap(oldAuthorInfoMap);
 
-    const savedTitle2 = localStorage.getItem("bofo_title2");
-    if (savedTitle2) setTitle2(savedTitle2);
+    if (savedTabs) {
+      const parsedTabs = JSON.parse(savedTabs) as AuthorTab[];
+      setTabs(parsedTabs);
 
-    const savedAuthor = localStorage.getItem("bofo_author");
-    if (savedAuthor) setAuthor(savedAuthor);
+      const targetId = savedActiveTabId && parsedTabs.some((t) => t.id === savedActiveTabId)
+        ? savedActiveTabId
+        : parsedTabs[0]?.id || "";
 
-    const savedBookIntroMap = localStorage.getItem("bofo_bookIntroMap");
-    if (savedBookIntroMap) setBookIntroMap(JSON.parse(savedBookIntroMap));
+      if (targetId) {
+        setActiveTabId(targetId);
+        const activeTabObj = parsedTabs.find((t) => t.id === targetId)!;
+        setTitle1(activeTabObj.title1 || "");
+        setTitle2(activeTabObj.title2 || "");
+        setAuthor(activeTabObj.author || "");
+        setBookListText(activeTabObj.bookListText || "");
+        setIntroductionText(activeTabObj.introductionText || "");
+        setChapterKeywords(activeTabObj.chapterKeywords || "chapter, lesson");
+        setGenresText(activeTabObj.genresText || "");
+        setCustomBlockPhrases(activeTabObj.customBlockPhrases || "");
+        setPromptTemplate(activeTabObj.promptTemplate || "");
+        setPromptPlaceholderBook(activeTabObj.promptPlaceholderBook || "");
+        setSplitterInput(activeTabObj.splitterInput || "");
+        setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
+        setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
+        setDetectedChapters(activeTabObj.detectedChapters || []);
+        setBookIntroMap(activeTabObj.bookIntroMap || {});
+        setActiveTab(activeTabObj.activeSubTab || "formatter");
+      }
+    } else {
+      // Migrate from old flat structure
+      const oldTitle1 = localStorage.getItem("bofo_title1") || "";
+      const oldTitle2 = localStorage.getItem("bofo_title2") || "";
+      const oldAuthor = localStorage.getItem("bofo_author") || "";
+      const oldBookList = localStorage.getItem("bofo_bookList") || "";
+      const oldChapterKeywords = localStorage.getItem("bofo_chapterKeywords") || "chapter, lesson";
+      const oldGenres = localStorage.getItem("bofo_genres") || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks";
+      const oldCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases") || "";
+      const oldPromptTemplate = localStorage.getItem("bofo_promptTemplate") || "";
+      const oldPromptPlaceholderBook = localStorage.getItem("bofo_promptPlaceholderBook") || "";
+      const oldSplitterInput = localStorage.getItem("bofo_splitterInput") || "";
+      const oldSettingsOpen = localStorage.getItem("bofo_isSettingsOpen") !== "false";
+      const oldBookListOpen = localStorage.getItem("bofo_isBookListOpen") !== "false";
+      const oldBookIntroMap = JSON.parse(localStorage.getItem("bofo_bookIntroMap") || "{}");
 
-    const savedAuthorInfoMap = localStorage.getItem("bofo_authorInfoMap");
-    if (savedAuthorInfoMap) setAuthorInfoMap(JSON.parse(savedAuthorInfoMap));
+      const oldAuthorEditorContent = oldAuthor ? (oldAuthorInfoMap[oldAuthor] || "") : "";
 
-    const savedChapterKeywords = localStorage.getItem("bofo_chapterKeywords");
-    if (savedChapterKeywords) setChapterKeywords(savedChapterKeywords);
+      const initialId = `tab_${Date.now()}`;
+      const initialTab: AuthorTab = {
+        id: initialId,
+        title1: oldTitle1,
+        title2: oldTitle2,
+        author: oldAuthor,
+        bookListText: oldBookList,
+        introductionText: "",
+        chapterKeywords: oldChapterKeywords,
+        genresText: oldGenres,
+        customBlockPhrases: oldCustomBlockPhrases,
+        promptTemplate: oldPromptTemplate,
+        promptPlaceholderBook: oldPromptPlaceholderBook,
+        splitterInput: oldSplitterInput,
+        isSettingsOpen: oldSettingsOpen,
+        isBookListOpen: oldBookListOpen,
+        detectedChapters: [],
+        editorContent: "",
+        authorEditorContent: oldAuthorEditorContent,
+        bookIntroMap: oldBookIntroMap,
+        activeSubTab: "formatter",
+      };
 
-    const savedGenres = localStorage.getItem("bofo_genres");
-    if (savedGenres) setGenresText(savedGenres);
+      setTabs([initialTab]);
+      setActiveTabId(initialId);
 
-    const savedCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases");
-    if (savedCustomBlockPhrases) setCustomBlockPhrases(savedCustomBlockPhrases);
-
-    const savedPromptTemplate = localStorage.getItem("bofo_promptTemplate");
-    if (savedPromptTemplate) setPromptTemplate(savedPromptTemplate);
-
-    const savedPromptPlaceholderBook = localStorage.getItem("bofo_promptPlaceholderBook");
-    if (savedPromptPlaceholderBook) setPromptPlaceholderBook(savedPromptPlaceholderBook);
-
-    const savedSplitterInput = localStorage.getItem("bofo_splitterInput");
-    if (savedSplitterInput) setSplitterInput(savedSplitterInput);
-
-    const savedSettingsOpen = localStorage.getItem("bofo_isSettingsOpen");
-    if (savedSettingsOpen !== null) setIsSettingsOpen(savedSettingsOpen === "true");
-
-    const savedBookListOpen = localStorage.getItem("bofo_isBookListOpen");
-    if (savedBookListOpen !== null) setIsBookListOpen(savedBookListOpen === "true");
+      setTitle1(oldTitle1);
+      setTitle2(oldTitle2);
+      setAuthor(oldAuthor);
+      setBookListText(oldBookList);
+      setChapterKeywords(oldChapterKeywords);
+      setGenresText(oldGenres);
+      setCustomBlockPhrases(oldCustomBlockPhrases);
+      setPromptTemplate(oldPromptTemplate);
+      setPromptPlaceholderBook(oldPromptPlaceholderBook);
+      setSplitterInput(oldSplitterInput);
+      setIsSettingsOpen(oldSettingsOpen);
+      setIsBookListOpen(oldBookListOpen);
+      setBookIntroMap(oldBookIntroMap);
+    }
   }, []);
 
-  // Sync state changes to LocalStorage
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_bookList", bookListText);
-  }, [bookListText, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_title1", title1);
-  }, [title1, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_splitterInput", splitterInput);
-  }, [splitterInput, isMounted]);
-
+  // Sync splitterInput to author if index 9 contains a value
   useEffect(() => {
     if (isMounted && splitterInput) {
       const rows = splitterInput.split("\n").map(r => r.trim()).filter(r => r);
@@ -116,42 +185,6 @@ export const useBookState = () => {
       }
     }
   }, [splitterInput, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_title2", title2);
-  }, [title2, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_author", author);
-  }, [author, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_chapterKeywords", chapterKeywords);
-  }, [chapterKeywords, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_genres", genresText);
-  }, [genresText, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_customBlockPhrases", customBlockPhrases);
-  }, [customBlockPhrases, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_promptTemplate", promptTemplate);
-  }, [promptTemplate, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
-  }, [promptPlaceholderBook, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_isSettingsOpen", String(isSettingsOpen));
-  }, [isSettingsOpen, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) localStorage.setItem("bofo_isBookListOpen", String(isBookListOpen));
-  }, [isBookListOpen, isMounted]);
 
   // Sync Introduction content based on current Title1
   useEffect(() => {
@@ -244,6 +277,27 @@ export const useBookState = () => {
     },
   });
 
+  // Load editor contents on startup when components are ready
+  useEffect(() => {
+    if (editor && activeTabId && tabs.length > 0 && !editorRestoredRef.current) {
+      const activeTabObj = tabs.find((t) => t.id === activeTabId);
+      if (activeTabObj && activeTabObj.editorContent) {
+        editor.commands.setContent(activeTabObj.editorContent);
+      }
+      editorRestoredRef.current = true;
+    }
+  }, [editor, activeTabId, tabs]);
+
+  useEffect(() => {
+    if (authorEditor && activeTabId && tabs.length > 0 && !authorEditorRestoredRef.current) {
+      const activeTabObj = tabs.find((t) => t.id === activeTabId);
+      if (activeTabObj && activeTabObj.authorEditorContent) {
+        authorEditor.commands.setContent(activeTabObj.authorEditorContent);
+      }
+      authorEditorRestoredRef.current = true;
+    }
+  }, [authorEditor, activeTabId, tabs]);
+
   // Sync author editor contents when current author changes
   useEffect(() => {
     if (authorEditor && author) {
@@ -255,6 +309,277 @@ export const useBookState = () => {
       authorEditor.commands.setContent("");
     }
   }, [author, authorInfoMap, authorEditor]);
+
+  // Debounced save to LocalStorage
+  useEffect(() => {
+    if (!isMounted || !activeTabId) return;
+
+    const timer = setTimeout(() => {
+      const currentEditorContent = editor ? editor.getHTML() : "";
+      const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
+
+      const updated = tabs.map((t) => {
+        if (t.id === activeTabId) {
+          return {
+            ...t,
+            title1,
+            title2,
+            author,
+            bookListText,
+            introductionText,
+            chapterKeywords,
+            genresText,
+            customBlockPhrases,
+            promptTemplate,
+            promptPlaceholderBook,
+            splitterInput,
+            isSettingsOpen,
+            isBookListOpen,
+            detectedChapters,
+            bookIntroMap,
+            activeSubTab: activeTab,
+            editorContent: currentEditorContent,
+            authorEditorContent: currentAuthorEditorContent,
+          };
+        }
+        return t;
+      });
+
+      localStorage.setItem("bofo_tabs", JSON.stringify(updated));
+      localStorage.setItem("bofo_activeTabId", activeTabId);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    tabs,
+    activeTabId,
+    title1,
+    title2,
+    author,
+    bookListText,
+    introductionText,
+    chapterKeywords,
+    genresText,
+    customBlockPhrases,
+    promptTemplate,
+    promptPlaceholderBook,
+    splitterInput,
+    isSettingsOpen,
+    isBookListOpen,
+    detectedChapters,
+    bookIntroMap,
+    activeTab,
+    editor,
+    authorEditor,
+    isMounted,
+  ]);
+
+  // Tab switcher
+  const switchTab = (nextTabId: string) => {
+    if (nextTabId === activeTabId) return;
+
+    const currentEditorContent = editor ? editor.getHTML() : "";
+    const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
+
+    setTabs((prevTabs) => {
+      const updated = prevTabs.map((t) => {
+        if (t.id === activeTabId) {
+          return {
+            ...t,
+            title1,
+            title2,
+            author,
+            bookListText,
+            introductionText,
+            chapterKeywords,
+            genresText,
+            customBlockPhrases,
+            promptTemplate,
+            promptPlaceholderBook,
+            splitterInput,
+            isSettingsOpen,
+            isBookListOpen,
+            detectedChapters,
+            bookIntroMap,
+            activeSubTab: activeTab,
+            editorContent: currentEditorContent,
+            authorEditorContent: currentAuthorEditorContent,
+          };
+        }
+        return t;
+      });
+
+      const nextTab = updated.find((t) => t.id === nextTabId);
+      if (nextTab) {
+        setTitle1(nextTab.title1 || "");
+        setTitle2(nextTab.title2 || "");
+        setAuthor(nextTab.author || "");
+        setBookListText(nextTab.bookListText || "");
+        setIntroductionText(nextTab.introductionText || "");
+        setChapterKeywords(nextTab.chapterKeywords || "chapter, lesson");
+        setGenresText(nextTab.genresText || "");
+        setCustomBlockPhrases(nextTab.customBlockPhrases || "");
+        setPromptTemplate(nextTab.promptTemplate || "");
+        setPromptPlaceholderBook(nextTab.promptPlaceholderBook || "");
+        setSplitterInput(nextTab.splitterInput || "");
+        setIsSettingsOpen(nextTab.isSettingsOpen ?? true);
+        setIsBookListOpen(nextTab.isBookListOpen ?? true);
+        setDetectedChapters(nextTab.detectedChapters || []);
+        setBookIntroMap(nextTab.bookIntroMap || {});
+        setActiveTab(nextTab.activeSubTab || "formatter");
+
+        if (editor) {
+          editor.commands.setContent(nextTab.editorContent || "");
+        }
+        if (authorEditor) {
+          authorEditor.commands.setContent(nextTab.authorEditorContent || "");
+        }
+      }
+
+      return updated;
+    });
+
+    setActiveTabId(nextTabId);
+  };
+
+  // Add a new tab
+  const addTab = () => {
+    const newId = `tab_${Date.now()}`;
+    const newTab: AuthorTab = {
+      id: newId,
+      title1: "",
+      title2: "",
+      author: "",
+      bookListText: "",
+      introductionText: "",
+      chapterKeywords: "chapter, lesson",
+      genresText: "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks",
+      customBlockPhrases: "",
+      promptTemplate: "",
+      promptPlaceholderBook: "",
+      splitterInput: "",
+      isSettingsOpen: true,
+      isBookListOpen: true,
+      detectedChapters: [],
+      editorContent: "",
+      authorEditorContent: "",
+      bookIntroMap: {},
+      activeSubTab: "formatter",
+    };
+
+    const currentEditorContent = editor ? editor.getHTML() : "";
+    const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
+
+    setTabs((prevTabs) => {
+      const updated = prevTabs.map((t) => {
+        if (t.id === activeTabId) {
+          return {
+            ...t,
+            title1,
+            title2,
+            author,
+            bookListText,
+            introductionText,
+            chapterKeywords,
+            genresText,
+            customBlockPhrases,
+            promptTemplate,
+            promptPlaceholderBook,
+            splitterInput,
+            isSettingsOpen,
+            isBookListOpen,
+            detectedChapters,
+            bookIntroMap,
+            activeSubTab: activeTab,
+            editorContent: currentEditorContent,
+            authorEditorContent: currentAuthorEditorContent,
+          };
+        }
+        return t;
+      });
+      return [...updated, newTab];
+    });
+
+    setTitle1("");
+    setTitle2("");
+    setAuthor("");
+    setBookListText("");
+    setIntroductionText("");
+    setChapterKeywords("chapter, lesson");
+    setGenresText("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
+    setCustomBlockPhrases("");
+    setPromptTemplate("");
+    setPromptPlaceholderBook("");
+    setSplitterInput("");
+    setIsSettingsOpen(true);
+    setIsBookListOpen(true);
+    setDetectedChapters([]);
+    setBookIntroMap({});
+    setActiveTab("formatter");
+
+    if (editor) {
+      editor.commands.setContent("");
+    }
+    if (authorEditor) {
+      authorEditor.commands.setContent("");
+    }
+
+    setActiveTabId(newId);
+  };
+
+  // Delete a tab
+  const deleteTab = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tabs.length <= 1) return;
+
+    const tabIndex = tabs.findIndex((t) => t.id === tabId);
+    const nextTabs = tabs.filter((t) => t.id !== tabId);
+
+    setTabs(nextTabs);
+
+    if (activeTabId === tabId) {
+      const nextActiveIndex = tabIndex === 0 ? 0 : tabIndex - 1;
+      const nextActiveTab = nextTabs[nextActiveIndex];
+      if (nextActiveTab) {
+        setTitle1(nextActiveTab.title1 || "");
+        setTitle2(nextActiveTab.title2 || "");
+        setAuthor(nextActiveTab.author || "");
+        setBookListText(nextActiveTab.bookListText || "");
+        setIntroductionText(nextActiveTab.introductionText || "");
+        setChapterKeywords(nextActiveTab.chapterKeywords || "chapter, lesson");
+        setGenresText(nextActiveTab.genresText || "");
+        setCustomBlockPhrases(nextActiveTab.customBlockPhrases || "");
+        setPromptTemplate(nextActiveTab.promptTemplate || "");
+        setPromptPlaceholderBook(nextActiveTab.promptPlaceholderBook || "");
+        setSplitterInput(nextActiveTab.splitterInput || "");
+        setIsSettingsOpen(nextActiveTab.isSettingsOpen ?? true);
+        setIsBookListOpen(nextActiveTab.isBookListOpen ?? true);
+        setDetectedChapters(nextActiveTab.detectedChapters || []);
+        setBookIntroMap(nextActiveTab.bookIntroMap || {});
+        setActiveTab(nextActiveTab.activeSubTab || "formatter");
+
+        if (editor) {
+          editor.commands.setContent(nextActiveTab.editorContent || "");
+        }
+        if (authorEditor) {
+          authorEditor.commands.setContent(nextActiveTab.authorEditorContent || "");
+        }
+
+        setActiveTabId(nextActiveTab.id);
+      }
+    }
+  };
+
+  // Rename tab
+  const renameTab = (tabId: string, newName: string) => {
+    if (tabId === activeTabId) {
+      setAuthor(newName);
+    } else {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, author: newName } : t))
+      );
+    }
+  };
 
   // Memoized lists of parsed books
   const parsedBooks = useMemo(() => {
@@ -310,7 +635,6 @@ export const useBookState = () => {
       if (title1) {
         setBookIntroMap((prev) => {
           const newMap = { ...prev, [title1]: result.introductionText };
-          localStorage.setItem("bofo_bookIntroMap", JSON.stringify(newMap));
           return newMap;
         });
       }
@@ -402,5 +726,14 @@ export const useBookState = () => {
     triggerExportWord,
     triggerExportPDF,
     authorInfoMap,
+    // Multi-tab workspace features
+    tabs,
+    setTabs,
+    activeTabId,
+    setActiveTabId,
+    switchTab,
+    addTab,
+    deleteTab,
+    renameTab,
   };
 };

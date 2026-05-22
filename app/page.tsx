@@ -5,6 +5,7 @@ import { FormatterTab } from "@/components/tabs/FormatterTab";
 import { PromptTab } from "@/components/tabs/PromptTab";
 import { SplitterTab } from "@/components/tabs/SplitterTab";
 import { Modal } from "@/components/common/Modal";
+import { AuthorTabs } from "@/components/common/AuthorTabs";
 import { FileText, Wand2, TableProperties } from "lucide-react";
 
 export default function Home() {
@@ -15,6 +16,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
+        {/* Author Workspace Tabs */}
+        <AuthorTabs
+          tabs={state.tabs}
+          activeTabId={state.activeTabId}
+          activeAuthor={state.author}
+          onSelectTab={state.switchTab}
+          onAddTab={state.addTab}
+          onDeleteTab={state.deleteTab}
+          onRenameTab={state.renameTab}
+        />
+
         {/* Tab Navigation */}
         <div className="tab-navigation-container">
           <button
