@@ -23,8 +23,6 @@ export interface AuthorTab {
   chapterKeywords: string;
   genresText: string;
   customBlockPhrases: string;
-  promptTemplate: string;
-  promptPlaceholderBook: string;
   splitterInput: string;
   isSettingsOpen: boolean;
   isBookListOpen: boolean;
@@ -102,7 +100,10 @@ export const useBookState = () => {
     const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
     setAuthorInfoMap(oldAuthorInfoMap);
 
-
+    const savedTemplate = localStorage.getItem("bofo_promptTemplate");
+    const savedPlaceholder = localStorage.getItem("bofo_promptPlaceholderBook");
+    let initialTemplate = savedTemplate !== null ? savedTemplate : "Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ...";
+    let initialPlaceholder = savedPlaceholder !== null ? savedPlaceholder : "English for Beginners";
 
     if (savedTabs) {
       const parsedTabs = JSON.parse(savedTabs) as AuthorTab[];
@@ -123,8 +124,7 @@ export const useBookState = () => {
         setChapterKeywords(activeTabObj.chapterKeywords || "chapter, lesson");
         setGenresText(activeTabObj.genresText || "");
         setCustomBlockPhrases(activeTabObj.customBlockPhrases || "");
-        setPromptTemplate(activeTabObj.promptTemplate || "");
-        setPromptPlaceholderBook(activeTabObj.promptPlaceholderBook || "");
+        
         setSplitterInput(activeTabObj.splitterInput || "");
         setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
         setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
@@ -142,8 +142,6 @@ export const useBookState = () => {
       const oldChapterKeywords = localStorage.getItem("bofo_chapterKeywords") || "chapter, lesson";
       const oldGenres = localStorage.getItem("bofo_genres") || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks";
       const oldCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases") || "";
-      const oldPromptTemplate = localStorage.getItem("bofo_promptTemplate") || "";
-      const oldPromptPlaceholderBook = localStorage.getItem("bofo_promptPlaceholderBook") || "";
       const oldSplitterInput = localStorage.getItem("bofo_splitterInput") || "";
       const oldSettingsOpen = localStorage.getItem("bofo_isSettingsOpen") !== "false";
       const oldBookListOpen = localStorage.getItem("bofo_isBookListOpen") !== "false";
@@ -162,8 +160,6 @@ export const useBookState = () => {
         chapterKeywords: oldChapterKeywords,
         genresText: oldGenres,
         customBlockPhrases: oldCustomBlockPhrases,
-        promptTemplate: oldPromptTemplate,
-        promptPlaceholderBook: oldPromptPlaceholderBook,
         splitterInput: oldSplitterInput,
         isSettingsOpen: oldSettingsOpen,
         isBookListOpen: oldBookListOpen,
@@ -185,14 +181,15 @@ export const useBookState = () => {
       setChapterKeywords(oldChapterKeywords);
       setGenresText(oldGenres);
       setCustomBlockPhrases(oldCustomBlockPhrases);
-      setPromptTemplate(oldPromptTemplate);
-      setPromptPlaceholderBook(oldPromptPlaceholderBook);
       setSplitterInput(oldSplitterInput);
       setIsSettingsOpen(oldSettingsOpen);
       setIsBookListOpen(oldBookListOpen);
       setBookIntroMap(oldBookIntroMap);
       setBookContentMap({});
     }
+
+    setPromptTemplate(initialTemplate);
+    setPromptPlaceholderBook(initialPlaceholder);
   }, []);
 
   // Sync splitterInput to author if index 9 contains a value
@@ -349,6 +346,10 @@ export const useBookState = () => {
       const currentEditorContent = editor ? editor.getHTML() : "";
       const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
 
+      // Save global template to localStorage
+      localStorage.setItem("bofo_promptTemplate", promptTemplate);
+      localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
+
       setBookContentMap((prevMap) => {
         const nextMap = { ...prevMap };
         if (title1) {
@@ -368,8 +369,6 @@ export const useBookState = () => {
                 chapterKeywords,
                 genresText,
                 customBlockPhrases,
-                promptTemplate,
-                promptPlaceholderBook,
                 splitterInput,
                 isSettingsOpen,
                 isBookListOpen,
@@ -440,8 +439,6 @@ export const useBookState = () => {
             chapterKeywords,
             genresText,
             customBlockPhrases,
-            promptTemplate,
-            promptPlaceholderBook,
             splitterInput,
             isSettingsOpen,
             isBookListOpen,
@@ -466,8 +463,6 @@ export const useBookState = () => {
         setChapterKeywords(nextTab.chapterKeywords || "chapter, lesson");
         setGenresText(nextTab.genresText || "");
         setCustomBlockPhrases(nextTab.customBlockPhrases || "");
-        setPromptTemplate(nextTab.promptTemplate || "");
-        setPromptPlaceholderBook(nextTab.promptPlaceholderBook || "");
         setSplitterInput(nextTab.splitterInput || "");
         setIsSettingsOpen(nextTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextTab.isBookListOpen ?? true);
@@ -510,8 +505,6 @@ export const useBookState = () => {
       chapterKeywords: "chapter, lesson",
       genresText: "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks",
       customBlockPhrases: "",
-      promptTemplate: "",
-      promptPlaceholderBook: "",
       splitterInput: "",
       isSettingsOpen: true,
       isBookListOpen: true,
@@ -539,8 +532,6 @@ export const useBookState = () => {
             chapterKeywords,
             genresText,
             customBlockPhrases,
-            promptTemplate,
-            promptPlaceholderBook,
             splitterInput,
             isSettingsOpen,
             isBookListOpen,
@@ -565,8 +556,6 @@ export const useBookState = () => {
     setChapterKeywords("chapter, lesson");
     setGenresText("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
     setCustomBlockPhrases("");
-    setPromptTemplate("");
-    setPromptPlaceholderBook("");
     setSplitterInput("");
     setIsSettingsOpen(true);
     setIsBookListOpen(true);
@@ -613,8 +602,6 @@ export const useBookState = () => {
         setChapterKeywords(nextActiveTab.chapterKeywords || "chapter, lesson");
         setGenresText(nextActiveTab.genresText || "");
         setCustomBlockPhrases(nextActiveTab.customBlockPhrases || "");
-        setPromptTemplate(nextActiveTab.promptTemplate || "");
-        setPromptPlaceholderBook(nextActiveTab.promptPlaceholderBook || "");
         setSplitterInput(nextActiveTab.splitterInput || "");
         setIsSettingsOpen(nextActiveTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextActiveTab.isBookListOpen ?? true);
