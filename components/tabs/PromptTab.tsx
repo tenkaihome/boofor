@@ -18,6 +18,9 @@ interface PromptTabProps {
   title2: string;
   copiedId: string | null;
   handleCopy: (text: string, id: string, isHtml?: boolean) => void;
+  editor: any;
+  setActiveTab: (val: "formatter" | "prompt" | "splitter") => void;
+  selectBook: (title1: string, title2: string) => void;
 }
 
 export const PromptTab: React.FC<PromptTabProps> = ({

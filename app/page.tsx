@@ -118,6 +118,9 @@ export default function Home() {
             title2={state.title2}
             copiedId={state.copiedId}
             handleCopy={state.handleCopy}
+            editor={state.editor}
+            setActiveTab={state.setActiveTab}
+            selectBook={state.selectBook}
           />
         )}
 
@@ -129,6 +132,7 @@ export default function Home() {
             handleCopy={state.handleCopy}
           />
         )}
+
       </div>
 
       {/* Chapter List Modal */}

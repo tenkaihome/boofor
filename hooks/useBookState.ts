@@ -32,7 +32,17 @@ export interface AuthorTab {
   editorContent: string;
   authorEditorContent: string;
   bookIntroMap: Record<string, string>;
+  bookContentMap: Record<string, string>;
   activeSubTab: "formatter" | "prompt" | "splitter";
+}
+
+export interface BatchJob {
+  id: number;
+  bookTitle: string;
+  status: "idle" | "pending" | "generating" | "completed" | "failed";
+  progressText: string;
+  resultText?: string;
+  error?: string;
 }
 
 export const useBookState = () => {
@@ -71,9 +81,16 @@ export const useBookState = () => {
 
   const [bookIntroMap, setBookIntroMap] = useState<Record<string, string>>({});
   const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
+  const [bookContentMap, setBookContentMap] = useState<Record<string, string>>({});
 
   const editorRestoredRef = useRef(false);
   const authorEditorRestoredRef = useRef(false);
+  const isSwitchingTabRef = useRef(false);
+  const authorRef = useRef(author);
+
+  useEffect(() => {
+    authorRef.current = author;
+  }, [author]);
 
   // Initialize from LocalStorage and migrate old flat state if necessary
   useEffect(() => {
@@ -84,6 +101,8 @@ export const useBookState = () => {
 
     const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
     setAuthorInfoMap(oldAuthorInfoMap);
+
+
 
     if (savedTabs) {
       const parsedTabs = JSON.parse(savedTabs) as AuthorTab[];
@@ -111,6 +130,7 @@ export const useBookState = () => {
         setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
         setDetectedChapters(activeTabObj.detectedChapters || []);
         setBookIntroMap(activeTabObj.bookIntroMap || {});
+        setBookContentMap(activeTabObj.bookContentMap || {});
         setActiveTab(activeTabObj.activeSubTab || "formatter");
       }
     } else {
@@ -151,6 +171,7 @@ export const useBookState = () => {
         editorContent: "",
         authorEditorContent: oldAuthorEditorContent,
         bookIntroMap: oldBookIntroMap,
+        bookContentMap: {},
         activeSubTab: "formatter",
       };
 
@@ -170,6 +191,7 @@ export const useBookState = () => {
       setIsSettingsOpen(oldSettingsOpen);
       setIsBookListOpen(oldBookListOpen);
       setBookIntroMap(oldBookIntroMap);
+      setBookContentMap({});
     }
   }, []);
 
@@ -266,10 +288,12 @@ export const useBookState = () => {
       },
     },
     onUpdate: ({ editor: ed }) => {
+      if (isSwitchingTabRef.current) return;
       const html = ed.getHTML();
-      if (author) {
+      const currentAuthor = authorRef.current;
+      if (currentAuthor) {
         setAuthorInfoMap((prev) => {
-          const newMap = { ...prev, [author]: html };
+          const newMap = { ...prev, [currentAuthor]: html };
           localStorage.setItem("bofo_authorInfoMap", JSON.stringify(newMap));
           return newMap;
         });
@@ -281,8 +305,11 @@ export const useBookState = () => {
   useEffect(() => {
     if (editor && activeTabId && tabs.length > 0 && !editorRestoredRef.current) {
       const activeTabObj = tabs.find((t) => t.id === activeTabId);
-      if (activeTabObj && activeTabObj.editorContent) {
-        editor.commands.setContent(activeTabObj.editorContent);
+      if (activeTabObj) {
+        const title = activeTabObj.title1 || "";
+        const savedMap = activeTabObj.bookContentMap || {};
+        const content = (title ? savedMap[title] : null) || activeTabObj.editorContent || "";
+        editor.commands.setContent(content);
       }
       editorRestoredRef.current = true;
     }
@@ -292,7 +319,11 @@ export const useBookState = () => {
     if (authorEditor && activeTabId && tabs.length > 0 && !authorEditorRestoredRef.current) {
       const activeTabObj = tabs.find((t) => t.id === activeTabId);
       if (activeTabObj && activeTabObj.authorEditorContent) {
+        isSwitchingTabRef.current = true;
         authorEditor.commands.setContent(activeTabObj.authorEditorContent);
+        setTimeout(() => {
+          isSwitchingTabRef.current = false;
+        }, 100);
       }
       authorEditorRestoredRef.current = true;
     }
@@ -310,7 +341,7 @@ export const useBookState = () => {
     }
   }, [author, authorInfoMap, authorEditor]);
 
-  // Debounced save to LocalStorage
+  // Debounced save to LocalStorage and in-memory tabs state
   useEffect(() => {
     if (!isMounted || !activeTabId) return;
 
@@ -318,40 +349,53 @@ export const useBookState = () => {
       const currentEditorContent = editor ? editor.getHTML() : "";
       const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
 
-      const updated = tabs.map((t) => {
-        if (t.id === activeTabId) {
-          return {
-            ...t,
-            title1,
-            title2,
-            author,
-            bookListText,
-            introductionText,
-            chapterKeywords,
-            genresText,
-            customBlockPhrases,
-            promptTemplate,
-            promptPlaceholderBook,
-            splitterInput,
-            isSettingsOpen,
-            isBookListOpen,
-            detectedChapters,
-            bookIntroMap,
-            activeSubTab: activeTab,
-            editorContent: currentEditorContent,
-            authorEditorContent: currentAuthorEditorContent,
-          };
+      setBookContentMap((prevMap) => {
+        const nextMap = { ...prevMap };
+        if (title1) {
+          nextMap[title1] = currentEditorContent;
         }
-        return t;
-      });
 
-      localStorage.setItem("bofo_tabs", JSON.stringify(updated));
-      localStorage.setItem("bofo_activeTabId", activeTabId);
+        setTabs((prevTabs) => {
+          const updated = prevTabs.map((t) => {
+            if (t.id === activeTabId) {
+              return {
+                ...t,
+                title1,
+                title2,
+                author,
+                bookListText,
+                introductionText,
+                chapterKeywords,
+                genresText,
+                customBlockPhrases,
+                promptTemplate,
+                promptPlaceholderBook,
+                splitterInput,
+                isSettingsOpen,
+                isBookListOpen,
+                detectedChapters,
+                bookIntroMap,
+                bookContentMap: nextMap,
+                activeSubTab: activeTab,
+                editorContent: currentEditorContent,
+                authorEditorContent: currentAuthorEditorContent,
+              };
+            }
+            return t;
+          });
+
+          localStorage.setItem("bofo_tabs", JSON.stringify(updated));
+          localStorage.setItem("bofo_activeTabId", activeTabId);
+
+          return updated;
+        });
+
+        return nextMap;
+      });
     }, 500);
 
     return () => clearTimeout(timer);
   }, [
-    tabs,
     activeTabId,
     title1,
     title2,
@@ -378,6 +422,8 @@ export const useBookState = () => {
   const switchTab = (nextTabId: string) => {
     if (nextTabId === activeTabId) return;
 
+    isSwitchingTabRef.current = true;
+
     const currentEditorContent = editor ? editor.getHTML() : "";
     const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
 
@@ -401,6 +447,7 @@ export const useBookState = () => {
             isBookListOpen,
             detectedChapters,
             bookIntroMap,
+            bookContentMap,
             activeSubTab: activeTab,
             editorContent: currentEditorContent,
             authorEditorContent: currentAuthorEditorContent,
@@ -426,10 +473,12 @@ export const useBookState = () => {
         setIsBookListOpen(nextTab.isBookListOpen ?? true);
         setDetectedChapters(nextTab.detectedChapters || []);
         setBookIntroMap(nextTab.bookIntroMap || {});
+        setBookContentMap(nextTab.bookContentMap || {});
         setActiveTab(nextTab.activeSubTab || "formatter");
 
         if (editor) {
-          editor.commands.setContent(nextTab.editorContent || "");
+          const content = (nextTab.title1 ? (nextTab.bookContentMap || {})[nextTab.title1] : null) || nextTab.editorContent || "";
+          editor.commands.setContent(content);
         }
         if (authorEditor) {
           authorEditor.commands.setContent(nextTab.authorEditorContent || "");
@@ -440,10 +489,16 @@ export const useBookState = () => {
     });
 
     setActiveTabId(nextTabId);
+
+    setTimeout(() => {
+      isSwitchingTabRef.current = false;
+    }, 100);
   };
 
   // Add a new tab
   const addTab = () => {
+    isSwitchingTabRef.current = true;
+
     const newId = `tab_${Date.now()}`;
     const newTab: AuthorTab = {
       id: newId,
@@ -464,6 +519,7 @@ export const useBookState = () => {
       editorContent: "",
       authorEditorContent: "",
       bookIntroMap: {},
+      bookContentMap: {},
       activeSubTab: "formatter",
     };
 
@@ -490,6 +546,7 @@ export const useBookState = () => {
             isBookListOpen,
             detectedChapters,
             bookIntroMap,
+            bookContentMap,
             activeSubTab: activeTab,
             editorContent: currentEditorContent,
             authorEditorContent: currentAuthorEditorContent,
@@ -515,6 +572,7 @@ export const useBookState = () => {
     setIsBookListOpen(true);
     setDetectedChapters([]);
     setBookIntroMap({});
+    setBookContentMap({});
     setActiveTab("formatter");
 
     if (editor) {
@@ -525,12 +583,18 @@ export const useBookState = () => {
     }
 
     setActiveTabId(newId);
+
+    setTimeout(() => {
+      isSwitchingTabRef.current = false;
+    }, 100);
   };
 
   // Delete a tab
   const deleteTab = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (tabs.length <= 1) return;
+
+    isSwitchingTabRef.current = true;
 
     const tabIndex = tabs.findIndex((t) => t.id === tabId);
     const nextTabs = tabs.filter((t) => t.id !== tabId);
@@ -556,10 +620,12 @@ export const useBookState = () => {
         setIsBookListOpen(nextActiveTab.isBookListOpen ?? true);
         setDetectedChapters(nextActiveTab.detectedChapters || []);
         setBookIntroMap(nextActiveTab.bookIntroMap || {});
+        setBookContentMap(nextActiveTab.bookContentMap || {});
         setActiveTab(nextActiveTab.activeSubTab || "formatter");
 
         if (editor) {
-          editor.commands.setContent(nextActiveTab.editorContent || "");
+          const content = (nextActiveTab.title1 ? (nextActiveTab.bookContentMap || {})[nextActiveTab.title1] : null) || nextActiveTab.editorContent || "";
+          editor.commands.setContent(content);
         }
         if (authorEditor) {
           authorEditor.commands.setContent(nextActiveTab.authorEditorContent || "");
@@ -568,6 +634,10 @@ export const useBookState = () => {
         setActiveTabId(nextActiveTab.id);
       }
     }
+
+    setTimeout(() => {
+      isSwitchingTabRef.current = false;
+    }, 100);
   };
 
   // Rename tab
@@ -594,19 +664,44 @@ export const useBookState = () => {
       });
   }, [bookListText]);
 
+
+
+  const selectBook = (newTitle1: string, newTitle2: string) => {
+    if (!editor) return;
+
+    // 1. Save current content of the old book before switching
+    const currentHtml = editor.getHTML();
+    let nextMap = { ...bookContentMap };
+    if (title1) {
+      nextMap[title1] = currentHtml;
+      setBookContentMap(nextMap);
+      setTabs((prevTabs) =>
+        prevTabs.map((t) =>
+          t.id === activeTabId ? { ...t, bookContentMap: nextMap } : t
+        )
+      );
+    }
+
+    // 2. Update titles
+    setTitle1(newTitle1);
+    setTitle2(newTitle2);
+
+    // 3. Load content of the new book
+    const newHtml = nextMap[newTitle1] || "";
+    editor.commands.setContent(newHtml);
+  };
+
   // Handle select dropdown choices
   const handleSelectBook = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const idx = parseInt(e.target.value, 10);
     if (!isNaN(idx) && parsedBooks[idx]) {
-      setTitle1(parsedBooks[idx].title1);
-      setTitle2(parsedBooks[idx].title2);
+      selectBook(parsedBooks[idx].title1, parsedBooks[idx].title2);
     }
   };
 
   const handleSelectBookByIndex = (idx: number) => {
     if (parsedBooks[idx]) {
-      setTitle1(parsedBooks[idx].title1);
-      setTitle2(parsedBooks[idx].title2);
+      selectBook(parsedBooks[idx].title1, parsedBooks[idx].title2);
     }
   };
 
@@ -735,5 +830,8 @@ export const useBookState = () => {
     addTab,
     deleteTab,
     renameTab,
+    bookContentMap,
+    setBookContentMap,
+    selectBook,
   };
 };
