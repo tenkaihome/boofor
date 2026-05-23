@@ -12,6 +12,7 @@ import { Markdown } from "tiptap-markdown";
 import { copyToClipboard } from "@/utils/clipboard";
 import { cleanAndFormatHtml, getProcessedHtml } from "@/utils/formatter";
 import { exportToWord, exportToPDF } from "@/services/exportService";
+import { dbGet, dbSet } from "@/utils/db";
 
 export interface AuthorTab {
   id: string;
@@ -90,106 +91,123 @@ export const useBookState = () => {
     authorRef.current = author;
   }, [author]);
 
-  // Initialize from LocalStorage and migrate old flat state if necessary
+  // Initialize from IndexedDB / LocalStorage and migrate old flat state if necessary
   useEffect(() => {
-    setIsMounted(true);
-
-    const savedTabs = localStorage.getItem("bofo_tabs");
-    const savedActiveTabId = localStorage.getItem("bofo_activeTabId");
-
-    const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
-    setAuthorInfoMap(oldAuthorInfoMap);
-
-    const savedTemplate = localStorage.getItem("bofo_promptTemplate");
-    const savedPlaceholder = localStorage.getItem("bofo_promptPlaceholderBook");
-    let initialTemplate = savedTemplate !== null ? savedTemplate : "Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ...";
-    let initialPlaceholder = savedPlaceholder !== null ? savedPlaceholder : "English for Beginners";
-
-    if (savedTabs) {
-      const parsedTabs = JSON.parse(savedTabs) as AuthorTab[];
-      setTabs(parsedTabs);
-
-      const targetId = savedActiveTabId && parsedTabs.some((t) => t.id === savedActiveTabId)
-        ? savedActiveTabId
-        : parsedTabs[0]?.id || "";
-
-      if (targetId) {
-        setActiveTabId(targetId);
-        const activeTabObj = parsedTabs.find((t) => t.id === targetId)!;
-        setTitle1(activeTabObj.title1 || "");
-        setTitle2(activeTabObj.title2 || "");
-        setAuthor(activeTabObj.author || "");
-        setBookListText(activeTabObj.bookListText || "");
-        setIntroductionText(activeTabObj.introductionText || "");
-        setChapterKeywords(activeTabObj.chapterKeywords || "chapter, lesson");
-        setGenresText(activeTabObj.genresText || "");
-        setCustomBlockPhrases(activeTabObj.customBlockPhrases || "");
-        
-        setSplitterInput(activeTabObj.splitterInput || "");
-        setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
-        setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
-        setDetectedChapters(activeTabObj.detectedChapters || []);
-        setBookIntroMap(activeTabObj.bookIntroMap || {});
-        setBookContentMap(activeTabObj.bookContentMap || {});
-        setActiveTab(activeTabObj.activeSubTab || "formatter");
+    const initData = async () => {
+      let savedTabs = await dbGet("bofo_tabs");
+      if (!savedTabs) {
+        const lsTabs = localStorage.getItem("bofo_tabs");
+        if (lsTabs) {
+          try {
+            savedTabs = JSON.parse(lsTabs);
+          } catch (e) {
+            console.error("Failed to parse tabs from localStorage", e);
+          }
+        }
       }
-    } else {
-      // Migrate from old flat structure
-      const oldTitle1 = localStorage.getItem("bofo_title1") || "";
-      const oldTitle2 = localStorage.getItem("bofo_title2") || "";
-      const oldAuthor = localStorage.getItem("bofo_author") || "";
-      const oldBookList = localStorage.getItem("bofo_bookList") || "";
-      const oldChapterKeywords = localStorage.getItem("bofo_chapterKeywords") || "chapter, lesson";
-      const oldGenres = localStorage.getItem("bofo_genres") || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks";
-      const oldCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases") || "";
-      const oldSplitterInput = localStorage.getItem("bofo_splitterInput") || "";
-      const oldSettingsOpen = localStorage.getItem("bofo_isSettingsOpen") !== "false";
-      const oldBookListOpen = localStorage.getItem("bofo_isBookListOpen") !== "false";
-      const oldBookIntroMap = JSON.parse(localStorage.getItem("bofo_bookIntroMap") || "{}");
 
-      const oldAuthorEditorContent = oldAuthor ? (oldAuthorInfoMap[oldAuthor] || "") : "";
+      let savedActiveTabId = await dbGet("bofo_activeTabId");
+      if (!savedActiveTabId) {
+        savedActiveTabId = localStorage.getItem("bofo_activeTabId");
+      }
 
-      const initialId = `tab_${Date.now()}`;
-      const initialTab: AuthorTab = {
-        id: initialId,
-        title1: oldTitle1,
-        title2: oldTitle2,
-        author: oldAuthor,
-        bookListText: oldBookList,
-        introductionText: "",
-        chapterKeywords: oldChapterKeywords,
-        genresText: oldGenres,
-        customBlockPhrases: oldCustomBlockPhrases,
-        splitterInput: oldSplitterInput,
-        isSettingsOpen: oldSettingsOpen,
-        isBookListOpen: oldBookListOpen,
-        detectedChapters: [],
-        editorContent: "",
-        authorEditorContent: oldAuthorEditorContent,
-        bookIntroMap: oldBookIntroMap,
-        bookContentMap: {},
-        activeSubTab: "formatter",
-      };
+      const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
+      setAuthorInfoMap(oldAuthorInfoMap);
 
-      setTabs([initialTab]);
-      setActiveTabId(initialId);
+      const savedTemplate = localStorage.getItem("bofo_promptTemplate");
+      const savedPlaceholder = localStorage.getItem("bofo_promptPlaceholderBook");
+      let initialTemplate = savedTemplate !== null ? savedTemplate : "Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ...";
+      let initialPlaceholder = savedPlaceholder !== null ? savedPlaceholder : "English for Beginners";
 
-      setTitle1(oldTitle1);
-      setTitle2(oldTitle2);
-      setAuthor(oldAuthor);
-      setBookListText(oldBookList);
-      setChapterKeywords(oldChapterKeywords);
-      setGenresText(oldGenres);
-      setCustomBlockPhrases(oldCustomBlockPhrases);
-      setSplitterInput(oldSplitterInput);
-      setIsSettingsOpen(oldSettingsOpen);
-      setIsBookListOpen(oldBookListOpen);
-      setBookIntroMap(oldBookIntroMap);
-      setBookContentMap({});
-    }
+      if (savedTabs && Array.isArray(savedTabs) && savedTabs.length > 0) {
+        const parsedTabs = savedTabs as AuthorTab[];
+        setTabs(parsedTabs);
 
-    setPromptTemplate(initialTemplate);
-    setPromptPlaceholderBook(initialPlaceholder);
+        const targetId = savedActiveTabId && parsedTabs.some((t) => t.id === savedActiveTabId)
+          ? savedActiveTabId
+          : parsedTabs[0]?.id || "";
+
+        if (targetId) {
+          setActiveTabId(targetId);
+          const activeTabObj = parsedTabs.find((t) => t.id === targetId)!;
+          setTitle1(activeTabObj.title1 || "");
+          setTitle2(activeTabObj.title2 || "");
+          setAuthor(activeTabObj.author || "");
+          setBookListText(activeTabObj.bookListText || "");
+          setIntroductionText(activeTabObj.introductionText || "");
+          setChapterKeywords(activeTabObj.chapterKeywords || "chapter, lesson");
+          setGenresText(activeTabObj.genresText || "");
+          setCustomBlockPhrases(activeTabObj.customBlockPhrases || "");
+          
+          setSplitterInput(activeTabObj.splitterInput || "");
+          setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
+          setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
+          setDetectedChapters(activeTabObj.detectedChapters || []);
+          setBookIntroMap(activeTabObj.bookIntroMap || {});
+          setBookContentMap(activeTabObj.bookContentMap || {});
+          setActiveTab(activeTabObj.activeSubTab || "formatter");
+        }
+      } else {
+        // Migrate from old flat structure
+        const oldTitle1 = localStorage.getItem("bofo_title1") || "";
+        const oldTitle2 = localStorage.getItem("bofo_title2") || "";
+        const oldAuthor = localStorage.getItem("bofo_author") || "";
+        const oldBookList = localStorage.getItem("bofo_bookList") || "";
+        const oldChapterKeywords = localStorage.getItem("bofo_chapterKeywords") || "chapter, lesson";
+        const oldGenres = localStorage.getItem("bofo_genres") || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks";
+        const oldCustomBlockPhrases = localStorage.getItem("bofo_customBlockPhrases") || "";
+        const oldSplitterInput = localStorage.getItem("bofo_splitterInput") || "";
+        const oldSettingsOpen = localStorage.getItem("bofo_isSettingsOpen") !== "false";
+        const oldBookListOpen = localStorage.getItem("bofo_isBookListOpen") !== "false";
+        const oldBookIntroMap = JSON.parse(localStorage.getItem("bofo_bookIntroMap") || "{}");
+
+        const oldAuthorEditorContent = oldAuthor ? (oldAuthorInfoMap[oldAuthor] || "") : "";
+
+        const initialId = `tab_${Date.now()}`;
+        const initialTab: AuthorTab = {
+          id: initialId,
+          title1: oldTitle1,
+          title2: oldTitle2,
+          author: oldAuthor,
+          bookListText: oldBookList,
+          introductionText: "",
+          chapterKeywords: oldChapterKeywords,
+          genresText: oldGenres,
+          customBlockPhrases: oldCustomBlockPhrases,
+          splitterInput: oldSplitterInput,
+          isSettingsOpen: oldSettingsOpen,
+          isBookListOpen: oldBookListOpen,
+          detectedChapters: [],
+          editorContent: "",
+          authorEditorContent: oldAuthorEditorContent,
+          bookIntroMap: oldBookIntroMap,
+          bookContentMap: {},
+          activeSubTab: "formatter",
+        };
+
+        setTabs([initialTab]);
+        setActiveTabId(initialId);
+
+        setTitle1(oldTitle1);
+        setTitle2(oldTitle2);
+        setAuthor(oldAuthor);
+        setBookListText(oldBookList);
+        setChapterKeywords(oldChapterKeywords);
+        setGenresText(oldGenres);
+        setCustomBlockPhrases(oldCustomBlockPhrases);
+        setSplitterInput(oldSplitterInput);
+        setIsSettingsOpen(oldSettingsOpen);
+        setIsBookListOpen(oldBookListOpen);
+        setBookIntroMap(oldBookIntroMap);
+        setBookContentMap({});
+      }
+
+      setPromptTemplate(initialTemplate);
+      setPromptPlaceholderBook(initialPlaceholder);
+      setIsMounted(true);
+    };
+
+    initData();
   }, []);
 
   // Sync splitterInput to author if index 9 contains a value
@@ -291,7 +309,11 @@ export const useBookState = () => {
       if (currentAuthor) {
         setAuthorInfoMap((prev) => {
           const newMap = { ...prev, [currentAuthor]: html };
-          localStorage.setItem("bofo_authorInfoMap", JSON.stringify(newMap));
+          try {
+            localStorage.setItem("bofo_authorInfoMap", JSON.stringify(newMap));
+          } catch (e) {
+            console.error("Failed to save authorInfoMap to localStorage", e);
+          }
           return newMap;
         });
       }
@@ -347,8 +369,12 @@ export const useBookState = () => {
       const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
 
       // Save global template to localStorage
-      localStorage.setItem("bofo_promptTemplate", promptTemplate);
-      localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
+      try {
+        localStorage.setItem("bofo_promptTemplate", promptTemplate);
+        localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
+      } catch (e) {
+        console.error("Failed to save prompt config to localStorage", e);
+      }
 
       setBookContentMap((prevMap) => {
         const nextMap = { ...prevMap };
@@ -383,8 +409,21 @@ export const useBookState = () => {
             return t;
           });
 
-          localStorage.setItem("bofo_tabs", JSON.stringify(updated));
-          localStorage.setItem("bofo_activeTabId", activeTabId);
+          // Save to IndexedDB
+          dbSet("bofo_tabs", updated);
+          dbSet("bofo_activeTabId", activeTabId);
+
+          // Try to save to localStorage as fallback
+          try {
+            localStorage.setItem("bofo_tabs", JSON.stringify(updated));
+            localStorage.setItem("bofo_activeTabId", activeTabId);
+          } catch (e) {
+            if (e instanceof DOMException && e.name === "QuotaExceededError") {
+              console.warn("LocalStorage quota exceeded, using IndexedDB fallback");
+            } else {
+              console.error("Failed to save tabs to localStorage", e);
+            }
+          }
 
           return updated;
         });
