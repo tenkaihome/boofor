@@ -121,6 +121,8 @@ export default function Home() {
             editor={state.editor}
             setActiveTab={state.setActiveTab}
             selectBook={state.selectBook}
+            isPromptOpen={state.isPromptOpen}
+            setIsPromptOpen={state.setIsPromptOpen}
           />
         )}
 

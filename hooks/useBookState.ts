@@ -27,6 +27,7 @@ export interface AuthorTab {
   splitterInput: string;
   isSettingsOpen: boolean;
   isBookListOpen: boolean;
+  isPromptOpen: boolean;
   detectedChapters: string[];
   editorContent: string;
   authorEditorContent: string;
@@ -71,6 +72,7 @@ export const useBookState = () => {
   const [splitterInput, setSplitterInput] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const [isBookListOpen, setIsBookListOpen] = useState(true);
+  const [isPromptOpen, setIsPromptOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [detectedChapters, setDetectedChapters] = useState<string[]>([]);
@@ -142,6 +144,7 @@ export const useBookState = () => {
           setSplitterInput(activeTabObj.splitterInput || "");
           setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
           setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
+          setIsPromptOpen(activeTabObj.isPromptOpen ?? true);
           setDetectedChapters(activeTabObj.detectedChapters || []);
           setBookIntroMap(activeTabObj.bookIntroMap || {});
           setBookContentMap(activeTabObj.bookContentMap || {});
@@ -177,6 +180,7 @@ export const useBookState = () => {
           splitterInput: oldSplitterInput,
           isSettingsOpen: oldSettingsOpen,
           isBookListOpen: oldBookListOpen,
+          isPromptOpen: true,
           detectedChapters: [],
           editorContent: "",
           authorEditorContent: oldAuthorEditorContent,
@@ -198,6 +202,7 @@ export const useBookState = () => {
         setSplitterInput(oldSplitterInput);
         setIsSettingsOpen(oldSettingsOpen);
         setIsBookListOpen(oldBookListOpen);
+        setIsPromptOpen(true);
         setBookIntroMap(oldBookIntroMap);
         setBookContentMap({});
       }
@@ -398,6 +403,7 @@ export const useBookState = () => {
                 splitterInput,
                 isSettingsOpen,
                 isBookListOpen,
+                isPromptOpen,
                 detectedChapters,
                 bookIntroMap,
                 bookContentMap: nextMap,
@@ -448,6 +454,7 @@ export const useBookState = () => {
     splitterInput,
     isSettingsOpen,
     isBookListOpen,
+    isPromptOpen,
     detectedChapters,
     bookIntroMap,
     activeTab,
@@ -481,6 +488,7 @@ export const useBookState = () => {
             splitterInput,
             isSettingsOpen,
             isBookListOpen,
+            isPromptOpen,
             detectedChapters,
             bookIntroMap,
             bookContentMap,
@@ -505,6 +513,7 @@ export const useBookState = () => {
         setSplitterInput(nextTab.splitterInput || "");
         setIsSettingsOpen(nextTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextTab.isBookListOpen ?? true);
+        setIsPromptOpen(nextTab.isPromptOpen ?? true);
         setDetectedChapters(nextTab.detectedChapters || []);
         setBookIntroMap(nextTab.bookIntroMap || {});
         setBookContentMap(nextTab.bookContentMap || {});
@@ -547,6 +556,7 @@ export const useBookState = () => {
       splitterInput: "",
       isSettingsOpen: true,
       isBookListOpen: true,
+      isPromptOpen: true,
       detectedChapters: [],
       editorContent: "",
       authorEditorContent: "",
@@ -598,6 +608,7 @@ export const useBookState = () => {
     setSplitterInput("");
     setIsSettingsOpen(true);
     setIsBookListOpen(true);
+    setIsPromptOpen(true);
     setDetectedChapters([]);
     setBookIntroMap({});
     setBookContentMap({});
@@ -644,6 +655,7 @@ export const useBookState = () => {
         setSplitterInput(nextActiveTab.splitterInput || "");
         setIsSettingsOpen(nextActiveTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextActiveTab.isBookListOpen ?? true);
+        setIsPromptOpen(nextActiveTab.isPromptOpen ?? true);
         setDetectedChapters(nextActiveTab.detectedChapters || []);
         setBookIntroMap(nextActiveTab.bookIntroMap || {});
         setBookContentMap(nextActiveTab.bookContentMap || {});
@@ -829,6 +841,8 @@ export const useBookState = () => {
     setIsSettingsOpen,
     isBookListOpen,
     setIsBookListOpen,
+    isPromptOpen,
+    setIsPromptOpen,
     copiedId,
     detectedChapters,
     isChapterListOpen,

@@ -1,5 +1,5 @@
-import React from "react";
-import { Wand2, BookOpen, Check, Copy } from "lucide-react";
+import React, { useState } from "react";
+import { Wand2, BookOpen, Check, Copy, ChevronDown } from "lucide-react";
 
 interface Book {
   title1: string;
@@ -21,6 +21,8 @@ interface PromptTabProps {
   editor: any;
   setActiveTab: (val: "formatter" | "prompt" | "splitter") => void;
   selectBook: (title1: string, title2: string) => void;
+  isPromptOpen: boolean;
+  setIsPromptOpen: (val: boolean) => void;
 }
 
 export const PromptTab: React.FC<PromptTabProps> = ({
@@ -34,6 +36,9 @@ export const PromptTab: React.FC<PromptTabProps> = ({
   title2,
   copiedId,
   handleCopy,
+  selectBook,
+  isPromptOpen,
+  setIsPromptOpen,
 }) => {
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
   const generatedPrompt = promptTemplate.replaceAll(promptPlaceholderBook, fullTitle);
@@ -43,69 +48,138 @@ export const PromptTab: React.FC<PromptTabProps> = ({
       {/* Left Column: Prompt Template & Quick Selector */}
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-indigo-600" />
-            Prompt Generator
-          </h2>
-          <p className="text-xs text-gray-500">
-            Nhập prompt mẫu rồi chọn sách — hệ thống sẽ tự thay tên sách cho bạn.
-          </p>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500">Prompt mẫu</label>
-            <textarea
-              rows={8}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-              value={promptTemplate}
-              onChange={(e) => setPromptTemplate(e.target.value)}
-              placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ..."
+          <button
+            onClick={() => setIsPromptOpen(!isPromptOpen)}
+            className="flex items-center justify-between w-full cursor-pointer"
+          >
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-indigo-600" />
+              Prompt Generator
+            </h2>
+            <ChevronDown
+              className={`w-5 h-5 text-gray-400 transition-transform ${isPromptOpen ? "rotate-180" : ""}`}
             />
-          </div>
+          </button>
+          {!isPromptOpen && (
+            <p className="text-xs text-gray-400 mt-1">Nhập prompt mẫu và cấu hình tên sách thay thế</p>
+          )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500">
-              Tên sách mẫu trong Prompt (để thay thế)
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
-              value={promptPlaceholderBook}
-              onChange={(e) => setPromptPlaceholderBook(e.target.value)}
-              placeholder="VD: English for Beginners"
-            />
-          </div>
+          {isPromptOpen && (
+            <div className="space-y-4 pt-2">
+              <p className="text-xs text-gray-500">
+                Nhập prompt mẫu rồi chọn sách — hệ thống sẽ tự thay tên sách cho bạn.
+              </p>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-500">Prompt mẫu</label>
+                <textarea
+                  rows={8}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                  value={promptTemplate}
+                  onChange={(e) => setPromptTemplate(e.target.value)}
+                  placeholder="VD: Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-500">
+                  Tên sách mẫu trong Prompt (để thay thế)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                  value={promptPlaceholderBook}
+                  onChange={(e) => setPromptPlaceholderBook(e.target.value)}
+                  placeholder="VD: English for Beginners"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Quick Book Selector */}
+        {/* Danh sách sách & Copy nhanh */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-md font-semibold text-gray-800 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-indigo-600" />
-            Chọn sách nhanh
-          </h2>
-          {(() => {
-            const selectedIdx = parsedBooks.findIndex(
-              (book) => book.title1 === title1 && book.title2 === title2
-            );
-            return (
-              <select
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-                onChange={handleSelectBook}
-                value={selectedIdx >= 0 ? selectedIdx : ""}
-              >
-                <option value="" disabled>
-                  -- Chọn cuốn sách --
-                </option>
-                {parsedBooks.map((book, idx) => (
-                  <option key={idx} value={idx}>
-                    {idx + 1}. {book.title1} {book.title2 ? ` - ${book.title2}` : ""}
-                  </option>
-                ))}
-              </select>
-            );
-          })()}
-          {title1 && (
-            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
-              Đang chọn: <span className="font-bold">{fullTitle}</span>
+          <div className="flex items-center justify-between">
+            <h2 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+              Danh sách sách & Copy nhanh
+            </h2>
+            <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">
+              {parsedBooks.length} sách
+            </span>
+          </div>
+
+          {parsedBooks.length > 0 ? (
+            <div className="max-h-[420px] overflow-y-auto pr-1 space-y-3 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {parsedBooks.map((book, idx) => {
+                  const bookFullTitle = `${book.title1}${book.title2 ? ` ${book.title2}` : ""}`.replace(/\s+/g, " ").trim();
+                  const bookPrompt = promptTemplate.replaceAll(promptPlaceholderBook, bookFullTitle);
+                  const isSelected = book.title1 === title1 && book.title2 === title2;
+                  const copyKey = `prompt-book-${idx}`;
+                  const isCopied = copiedId === copyKey;
+                  
+                  const previewText = bookPrompt 
+                    ? (bookPrompt.length > 80 ? bookPrompt.slice(0, 80) + "..." : bookPrompt)
+                    : "Chưa có prompt mẫu...";
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        selectBook(book.title1, book.title2);
+                        if (promptTemplate && promptPlaceholderBook) {
+                          handleCopy(bookPrompt, copyKey);
+                        }
+                      }}
+                      className={`flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer relative group ${
+                        isSelected
+                          ? "border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/10 shadow-sm"
+                          : "border-gray-100 bg-gray-50/50 hover:bg-indigo-50/40 hover:border-indigo-300"
+                      }`}
+                    >
+                      {/* Top badge and copy status */}
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          isSelected ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-600 group-hover:bg-indigo-100 group-hover:text-indigo-700"
+                        }`}>
+                          #{idx + 1}
+                        </span>
+                        
+                        <span className={`text-[10px] flex items-center gap-1 font-medium transition-colors ${
+                          isCopied ? "text-green-600 font-bold" : "text-gray-400 group-hover:text-indigo-600"
+                        }`}>
+                          {isCopied ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-green-600 animate-scale" />
+                              <span>Đã copy!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity">Copy</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Book Title */}
+                      <h4 className="text-sm font-bold text-gray-800 line-clamp-1 w-full mt-1.5">
+                        {bookFullTitle}
+                      </h4>
+
+                      {/* Prompt Preview */}
+                      <p className="text-[11px] text-gray-400 line-clamp-2 mt-1 leading-normal italic font-light group-hover:text-gray-500">
+                        {previewText}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl text-sm text-gray-400">
+              Chưa có danh sách sách. Vui lòng nhập danh sách sách trong tab Formatter.
             </div>
           )}
         </div>
