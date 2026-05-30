@@ -137,6 +137,7 @@ export const PromptTab: React.FC<PromptTabProps> = ({
                           ? "border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/10 shadow-sm"
                           : "border-gray-100 bg-gray-50/50 hover:bg-indigo-50/40 hover:border-indigo-300"
                       }`}
+                      title={bookFullTitle}
                     >
                       {/* Top badge and copy status */}
                       <div className="flex items-center justify-between w-full mb-1">
@@ -164,7 +165,7 @@ export const PromptTab: React.FC<PromptTabProps> = ({
                       </div>
 
                       {/* Book Title */}
-                      <h4 className="text-sm font-bold text-gray-800 line-clamp-1 w-full mt-1.5">
+                      <h4 className="text-sm font-bold text-gray-800 line-clamp-1 w-full mt-1.5" title={bookFullTitle}>
                         {bookFullTitle}
                       </h4>
 
