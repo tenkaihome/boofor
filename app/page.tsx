@@ -4,9 +4,10 @@ import { useBookState } from "@/hooks/useBookState";
 import { FormatterTab } from "@/components/tabs/FormatterTab";
 import { PromptTab } from "@/components/tabs/PromptTab";
 import { SplitterTab } from "@/components/tabs/SplitterTab";
+import { ReconcilerTab } from "@/components/tabs/ReconcilerTab";
 import { Modal } from "@/components/common/Modal";
 import { AuthorTabs } from "@/components/common/AuthorTabs";
-import { FileText, Wand2, TableProperties } from "lucide-react";
+import { FileText, Wand2, TableProperties, BookOpen } from "lucide-react";
 
 export default function Home() {
   const state = useBookState();
@@ -61,6 +62,17 @@ export default function Home() {
           >
             <TableProperties className="w-4 h-4" />
             Sheet Splitter
+          </button>
+          <button
+            onClick={() => state.setActiveTab("reconciler")}
+            className={`tab-button cursor-pointer ${
+              state.activeTab === "reconciler"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Catalog Reconciler
           </button>
         </div>
 
@@ -132,6 +144,15 @@ export default function Home() {
             setSplitterInput={state.setSplitterInput}
             copiedId={state.copiedId}
             handleCopy={state.handleCopy}
+          />
+        )}
+
+        {state.activeTab === "reconciler" && (
+          <ReconcilerTab
+            rawText={state.reconcilerRawText}
+            setRawText={state.setReconcilerRawText}
+            warehouseText={state.bookListText}
+            setWarehouseText={state.setBookListText}
           />
         )}
 

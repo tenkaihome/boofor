@@ -25,6 +25,8 @@ export interface AuthorTab {
   genresText: string;
   customBlockPhrases: string;
   splitterInput: string;
+  reconcilerRawText?: string;
+  reconcilerWarehouseText?: string;
   isSettingsOpen: boolean;
   isBookListOpen: boolean;
   isPromptOpen: boolean;
@@ -33,7 +35,7 @@ export interface AuthorTab {
   authorEditorContent: string;
   bookIntroMap: Record<string, string>;
   bookContentMap: Record<string, string>;
-  activeSubTab: "formatter" | "prompt" | "splitter";
+  activeSubTab: "formatter" | "prompt" | "splitter" | "reconciler";
 }
 
 export interface BatchJob {
@@ -68,8 +70,10 @@ export const useBookState = () => {
   const [customBlockPhrases, setCustomBlockPhrases] = useState("");
   const [promptTemplate, setPromptTemplate] = useState("");
   const [promptPlaceholderBook, setPromptPlaceholderBook] = useState("");
-  const [activeTab, setActiveTab] = useState<"formatter" | "prompt" | "splitter">("formatter");
+  const [activeTab, setActiveTab] = useState<"formatter" | "prompt" | "splitter" | "reconciler">("formatter");
   const [splitterInput, setSplitterInput] = useState("");
+  const [reconcilerRawText, setReconcilerRawText] = useState("");
+  const [reconcilerWarehouseText, setReconcilerWarehouseText] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const [isBookListOpen, setIsBookListOpen] = useState(true);
   const [isPromptOpen, setIsPromptOpen] = useState(true);
@@ -142,6 +146,8 @@ export const useBookState = () => {
           setCustomBlockPhrases(activeTabObj.customBlockPhrases || "");
           
           setSplitterInput(activeTabObj.splitterInput || "");
+          setReconcilerRawText(activeTabObj.reconcilerRawText || "");
+          setReconcilerWarehouseText(activeTabObj.reconcilerWarehouseText || "");
           setIsSettingsOpen(activeTabObj.isSettingsOpen ?? true);
           setIsBookListOpen(activeTabObj.isBookListOpen ?? true);
           setIsPromptOpen(activeTabObj.isPromptOpen ?? true);
@@ -187,6 +193,8 @@ export const useBookState = () => {
           bookIntroMap: oldBookIntroMap,
           bookContentMap: {},
           activeSubTab: "formatter",
+          reconcilerRawText: "",
+          reconcilerWarehouseText: "",
         };
 
         setTabs([initialTab]);
@@ -205,6 +213,8 @@ export const useBookState = () => {
         setIsPromptOpen(true);
         setBookIntroMap(oldBookIntroMap);
         setBookContentMap({});
+        setReconcilerRawText("");
+        setReconcilerWarehouseText("");
       }
 
       setPromptTemplate(initialTemplate);
@@ -401,6 +411,8 @@ export const useBookState = () => {
                 genresText,
                 customBlockPhrases,
                 splitterInput,
+                reconcilerRawText,
+                reconcilerWarehouseText,
                 isSettingsOpen,
                 isBookListOpen,
                 isPromptOpen,
@@ -452,6 +464,8 @@ export const useBookState = () => {
     promptTemplate,
     promptPlaceholderBook,
     splitterInput,
+    reconcilerRawText,
+    reconcilerWarehouseText,
     isSettingsOpen,
     isBookListOpen,
     isPromptOpen,
@@ -486,6 +500,8 @@ export const useBookState = () => {
             genresText,
             customBlockPhrases,
             splitterInput,
+            reconcilerRawText,
+            reconcilerWarehouseText,
             isSettingsOpen,
             isBookListOpen,
             isPromptOpen,
@@ -511,6 +527,8 @@ export const useBookState = () => {
         setGenresText(nextTab.genresText || "");
         setCustomBlockPhrases(nextTab.customBlockPhrases || "");
         setSplitterInput(nextTab.splitterInput || "");
+        setReconcilerRawText(nextTab.reconcilerRawText || "");
+        setReconcilerWarehouseText(nextTab.reconcilerWarehouseText || "");
         setIsSettingsOpen(nextTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextTab.isBookListOpen ?? true);
         setIsPromptOpen(nextTab.isPromptOpen ?? true);
@@ -554,6 +572,8 @@ export const useBookState = () => {
       genresText: "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks",
       customBlockPhrases: "",
       splitterInput: "",
+      reconcilerRawText: "",
+      reconcilerWarehouseText: "",
       isSettingsOpen: true,
       isBookListOpen: true,
       isPromptOpen: true,
@@ -582,6 +602,8 @@ export const useBookState = () => {
             genresText,
             customBlockPhrases,
             splitterInput,
+            reconcilerRawText,
+            reconcilerWarehouseText,
             isSettingsOpen,
             isBookListOpen,
             detectedChapters,
@@ -606,6 +628,8 @@ export const useBookState = () => {
     setGenresText("Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
     setCustomBlockPhrases("");
     setSplitterInput("");
+    setReconcilerRawText("");
+    setReconcilerWarehouseText("");
     setIsSettingsOpen(true);
     setIsBookListOpen(true);
     setIsPromptOpen(true);
@@ -653,6 +677,8 @@ export const useBookState = () => {
         setGenresText(nextActiveTab.genresText || "");
         setCustomBlockPhrases(nextActiveTab.customBlockPhrases || "");
         setSplitterInput(nextActiveTab.splitterInput || "");
+        setReconcilerRawText(nextActiveTab.reconcilerRawText || "");
+        setReconcilerWarehouseText(nextActiveTab.reconcilerWarehouseText || "");
         setIsSettingsOpen(nextActiveTab.isSettingsOpen ?? true);
         setIsBookListOpen(nextActiveTab.isBookListOpen ?? true);
         setIsPromptOpen(nextActiveTab.isPromptOpen ?? true);
@@ -837,6 +863,10 @@ export const useBookState = () => {
     setActiveTab,
     splitterInput,
     setSplitterInput,
+    reconcilerRawText,
+    setReconcilerRawText,
+    reconcilerWarehouseText,
+    setReconcilerWarehouseText,
     isSettingsOpen,
     setIsSettingsOpen,
     isBookListOpen,
