@@ -66,7 +66,7 @@ export const AuthScreen: React.FC = () => {
 
       {/* Main card */}
       <div className="w-full max-w-md bg-white border border-gray-150 rounded-2xl shadow-xl p-8 relative z-10 transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
-        
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex p-3 rounded-xl bg-indigo-50 border border-indigo-100 mb-4 shadow-inner relative group overflow-hidden">
@@ -80,6 +80,7 @@ export const AuthScreen: React.FC = () => {
               ? "Đăng nhập để vào hệ thống của bạn"
               : "Đăng ký tài khoản để bắt đầu trải nghiệm"}
           </p>
+          <span className="text-black mt-2 text-sm">telegram: @caramencafe</span>
         </div>
 
         {/* Notifications */}

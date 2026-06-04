@@ -74,30 +74,29 @@ export default function Home() {
               <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                 {user.role}
               </span>
+              &nbsp;&nbsp;<span className="text-[12px] text-black">telegram: @caramencafe</span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4 ml-auto sm:ml-0">
             {user.role === "admin" && (
               <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
                 <button
                   onClick={() => setActiveMainTab("book")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${
-                    activeMainTab === "book"
-                      ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "book"
+                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   Book
                 </button>
                 <button
                   onClick={() => setActiveMainTab("manage-roles")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${
-                    activeMainTab === "manage-roles"
-                      ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "manage-roles"
+                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
                   Manage Roles
@@ -132,44 +131,40 @@ export default function Home() {
             <div className="tab-navigation-container">
               <button
                 onClick={() => state.setActiveTab("formatter")}
-                className={`tab-button cursor-pointer ${
-                  state.activeTab === "formatter"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`tab-button cursor-pointer ${state.activeTab === "formatter"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 <FileText className="w-4 h-4" />
                 Formatter
               </button>
               <button
                 onClick={() => state.setActiveTab("prompt")}
-                className={`tab-button cursor-pointer ${
-                  state.activeTab === "prompt"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`tab-button cursor-pointer ${state.activeTab === "prompt"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 <Wand2 className="w-4 h-4" />
                 Prompt Generator
               </button>
               <button
                 onClick={() => state.setActiveTab("splitter")}
-                className={`tab-button cursor-pointer ${
-                  state.activeTab === "splitter"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`tab-button cursor-pointer ${state.activeTab === "splitter"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 <TableProperties className="w-4 h-4" />
                 Sheet Splitter
               </button>
               <button
                 onClick={() => state.setActiveTab("reconciler")}
-                className={`tab-button cursor-pointer ${
-                  state.activeTab === "reconciler"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`tab-button cursor-pointer ${state.activeTab === "reconciler"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
               >
                 <BookOpen className="w-4 h-4" />
                 Catalog Reconciler
