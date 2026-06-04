@@ -5,22 +5,49 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 export interface User {
   username: string;
   role: "admin" | "user" | "guest";
+  theme?: "light" | "dark";
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  theme: "light" | "dark";
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  toggleTheme: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize theme from localStorage as early as possible
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("boofor_theme") as "light" | "dark" | null;
+    const initialTheme = savedTheme || "light";
+    setTheme(initialTheme);
+    if (initialTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  // Helper to apply theme
+  const applyTheme = useCallback((newTheme: "light" | "dark") => {
+    setTheme(newTheme);
+    localStorage.setItem("boofor_theme", newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
 
   // Check current session
   const checkSession = useCallback(async () => {
@@ -35,6 +62,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        
+        // Sync theme from database profile
+        if (data.user?.theme) {
+          applyTheme(data.user.theme);
+        }
       } else {
         setUser(null);
         if (typeof window !== "undefined") {
@@ -47,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyTheme]);
 
   useEffect(() => {
     checkSession();
@@ -71,7 +103,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== "undefined" && data.sessionId) {
         localStorage.setItem("boofor_session_id", data.sessionId);
       }
+      
       setUser(data.user);
+
+      // Sync theme from database profile on login
+      if (data.user?.theme) {
+        applyTheme(data.user.theme);
+      }
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -131,8 +169,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await checkSession();
   };
 
+  // Toggle Theme action
+  const toggleTheme = useCallback(async () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    applyTheme(newTheme);
+
+    // If user is logged in, sync with database
+    if (user) {
+      try {
+        const storedToken = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+        await fetch("/api/auth/theme", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(storedToken ? { "Authorization": `Bearer ${storedToken}` } : {}),
+          },
+          body: JSON.stringify({ theme: newTheme }),
+        });
+      } catch (error) {
+        console.error("Failed to update theme in database:", error);
+      }
+    }
+  }, [theme, user, applyTheme]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, theme, login, register, logout, refreshUser, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

@@ -54,6 +54,7 @@ export async function POST(req: Request) {
       user: {
         username: user.username,
         role: user.role,
+        theme: user.theme || "light",
       },
       sessionId,
     });

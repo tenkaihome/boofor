@@ -295,7 +295,7 @@ export const useBookState = () => {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[60vh] max-h-[70vh] overflow-y-auto p-8 border rounded-md shadow-inner bg-white font-serif",
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[60vh] max-h-[70vh] overflow-y-auto p-8 border rounded-md shadow-inner bg-white dark:bg-[#161b22] dark:text-white dark:border-slate-700 font-serif dark:prose-invert",
       },
     },
   });
@@ -314,7 +314,7 @@ export const useBookState = () => {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm w-full p-3 border border-gray-200 rounded-lg focus:outline-none min-h-[100px] bg-gray-50 text-sm text-gray-900",
+          "prose prose-sm w-full p-3 border border-gray-200 rounded-lg focus:outline-none min-h-[100px] bg-gray-50 dark:bg-[#0d1117] text-sm text-gray-900 dark:text-slate-100 dark:prose-invert",
       },
     },
     onUpdate: ({ editor: ed }) => {

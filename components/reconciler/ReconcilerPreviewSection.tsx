@@ -18,7 +18,7 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-indigo-950 text-white p-5 rounded-2xl shadow-md transition-all">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-white/10 rounded-xl">
+          <div className="p-2.5 bg-[#ffffff]/10 rounded-xl">
             <Sheet className="w-5 h-5 text-emerald-300" />
           </div>
           <div className="space-y-0.5">
@@ -34,7 +34,7 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
           className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 ${
             copied
               ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : "bg-white text-indigo-950 hover:bg-gray-100 shadow-sm"
+              : "bg-[#ffffff] text-indigo-950 hover:bg-[#f3f4f6] shadow-sm"
           }`}
         >
           {copied ? (
@@ -57,7 +57,7 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
           <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider">
             Xem trước dạng hàng và cột
           </span>
-          <span className="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-3 py-1 rounded-full font-bold select-none">
+          <span className="text-[11px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/50 px-3 py-1 rounded-full font-bold select-none">
             Tự động tách Tiêu đề (Cột A) và Giá tiền (Cột B) khi dán
           </span>
         </div>
@@ -97,8 +97,8 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
                       <span
                         className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
                           isFree
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                            : "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
+                            : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50"
                         }`}
                       >
                         {book.price}
@@ -114,9 +114,9 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
 
       {/* Tutorial Tooltip */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs text-gray-600 leading-relaxed flex gap-2">
-        <span className="font-extrabold text-indigo-600 shrink-0">Mẹo nhỏ:</span>
+        <span className="font-extrabold text-indigo-600 dark:text-indigo-400 shrink-0">Mẹo nhỏ:</span>
         <p>
-          Chỉ cần nhấn nút <strong>"Sao chép kết quả"</strong> ở trên, sau đó mở file Google Sheets/Excel của bạn, chọn một ô bất kỳ và nhấn tổ hợp phím <strong>Ctrl + V</strong> (hoặc <strong>Cmd + V</strong> trên Mac). Danh sách sẽ tự động chia sang 2 cột tiêu đề và giá cực kỳ thẳng hàng mà không cần chỉnh sửa thủ công.
+          Chỉ cần nhấn nút <strong className="text-gray-800 dark:text-slate-200">"Sao chép kết quả"</strong> ở trên, sau đó mở file Google Sheets/Excel của bạn, chọn một ô bất kỳ và nhấn tổ hợp phím <strong className="text-gray-800 dark:text-slate-200">Ctrl + V</strong> (hoặc <strong className="text-gray-800 dark:text-slate-200">Cmd + V</strong> trên Mac). Danh sách sẽ tự động chia sang 2 cột tiêu đề và giá cực kỳ thẳng hàng mà không cần chỉnh sửa thủ công.
         </p>
       </div>
     </div>

@@ -39,9 +39,9 @@ export const ReconcilerInputSection: React.FC<ReconcilerInputSectionProps> = ({
         </div>
         <button
           onClick={onLoadSample}
-          className="text-xs font-semibold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-100"
+          className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/40 px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-100 dark:border-indigo-900/50"
         >
-          <Sparkles className="w-4 h-4 text-indigo-650" />
+          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           Dùng dữ liệu mẫu đối chiếu
         </button>
       </div>
@@ -83,7 +83,7 @@ export const ReconcilerInputSection: React.FC<ReconcilerInputSectionProps> = ({
 
           <div className="text-xs text-gray-400 font-semibold pt-2 border-t border-gray-50 flex items-center justify-between">
             <span>Trạng thái nhận diện:</span>
-            <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+            <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md">
               {parsedBooksCount} sách thô
             </span>
           </div>
@@ -97,7 +97,7 @@ export const ReconcilerInputSection: React.FC<ReconcilerInputSectionProps> = ({
                 <span className="w-2.5 h-2.5 bg-emerald-555 rounded-full shrink-0" style={{ backgroundColor: "#10b981" }}></span>
                 2. Danh sách kho gốc của bạn
               </h4>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-extrabold px-2.5 py-1 rounded-full border border-emerald-200 select-none">
+              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-extrabold px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/50 select-none">
                 Lấy từ tab Formatter
               </span>
             </div>
@@ -118,7 +118,7 @@ export const ReconcilerInputSection: React.FC<ReconcilerInputSectionProps> = ({
 
           <div className="text-xs text-gray-400 font-semibold pt-2 border-t border-gray-50 flex items-center justify-between">
             <span>Danh mục kho gốc:</span>
-            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
               {warehouseBooksCount} cuốn
             </span>
           </div>

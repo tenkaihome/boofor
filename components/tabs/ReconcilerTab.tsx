@@ -118,8 +118,8 @@ export const ReconcilerTab: React.FC<ReconcilerTabProps> = ({
         />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center flex flex-col items-center justify-center space-y-4 shadow-xs">
-          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
-            <Sheet className="w-6 h-6 text-indigo-650" />
+          <div className="w-14 h-14 rounded-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
+            <Sheet className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-gray-800">Chưa có dữ liệu bóc tách thô</h4>
@@ -129,7 +129,7 @@ export const ReconcilerTab: React.FC<ReconcilerTabProps> = ({
           </div>
           <button
             onClick={handleLoadSample}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-755 text-white text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             Thử nhanh bằng dữ liệu mẫu
           </button>

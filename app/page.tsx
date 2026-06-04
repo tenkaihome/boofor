@@ -8,14 +8,14 @@ import { SplitterTab } from "@/components/tabs/SplitterTab";
 import { ReconcilerTab } from "@/components/tabs/ReconcilerTab";
 import { Modal } from "@/components/common/Modal";
 import { AuthorTabs } from "@/components/common/AuthorTabs";
-import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock } from "lucide-react";
+import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { ManageRoles } from "@/components/admin/ManageRoles";
 
 export default function Home() {
   const state = useBookState();
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, theme, toggleTheme } = useAuth();
   const [activeMainTab, setActiveMainTab] = useState<"book" | "manage-roles">("book");
 
   if (!state.isMounted || isLoading) {
@@ -61,42 +61,46 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0d1117] p-4 md:p-8 font-sans transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Top user profile header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white px-5 py-3 rounded-xl shadow-sm border border-gray-200 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white dark:bg-[#161b22] px-5 py-3 rounded-xl shadow-sm border border-gray-200 transition-colors duration-300 animate-fadeIn">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold uppercase text-sm">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white font-bold uppercase text-sm">
               {user.username.charAt(0)}
             </div>
             <div>
-              <span className="font-semibold text-gray-800 text-sm block">Xin chào, {user.username}</span>
-              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                {user.role}
-              </span>
-              &nbsp;&nbsp;<span className="text-[12px] text-black">telegram: @caramencafe</span>
+              <span className="font-semibold text-gray-800 dark:text-slate-100 text-sm block">Xin chào, {user.username}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                  {user.role}
+                </span>
+                <span className="text-[12px] text-gray-500 dark:text-slate-400">telegram: @caramencafe</span>
+              </div>
             </div>
           </div>
-
+          
           <div className="flex items-center gap-4 ml-auto sm:ml-0">
             {user.role === "admin" && (
-              <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+              <div className="flex bg-gray-100 dark:bg-[#0d1117] p-1 rounded-lg border border-gray-200">
                 <button
                   onClick={() => setActiveMainTab("book")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "book"
-                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${
+                    activeMainTab === "book"
+                      ? "bg-white dark:bg-[#161b22] text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   Book
                 </button>
                 <button
                   onClick={() => setActiveMainTab("manage-roles")}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "manage-roles"
-                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${
+                    activeMainTab === "manage-roles"
+                      ? "bg-white dark:bg-[#161b22] text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
                   Manage Roles
@@ -104,9 +108,18 @@ export default function Home() {
               </div>
             )}
 
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 border border-gray-250 text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1f2937] transition-all cursor-pointer"
+              title={theme === "light" ? "Chuyển sang chế độ tối" : "Chuyển sang chế độ sáng"}
+            >
+              {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-amber-500 animate-pulse" />}
+            </button>
+
             <button
               onClick={logout}
-              className="text-sm font-semibold text-gray-500 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1.5 border border-gray-250 hover:border-gray-350 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+              className="text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1.5 border border-gray-250 hover:border-gray-350 dark:hover:border-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1f2937]"
             >
               <LogOut className="w-4 h-4" />
               Đăng xuất
