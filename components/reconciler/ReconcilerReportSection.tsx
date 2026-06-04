@@ -37,9 +37,9 @@ export const ReconcilerReportSection: React.FC<ReconcilerReportSectionProps> = (
         {unmatchedCount > 0 && (
           <button
             onClick={onCopyMissing}
-            className="self-start sm:self-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 select-none"
+            className="self-start sm:self-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-[#ffffff] rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 select-none"
           >
-            {copiedMissing ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-white" />}
+            {copiedMissing ? <Check className="w-3.5 h-3.5 text-[#ffffff]" /> : <Copy className="w-3.5 h-3.5 text-[#ffffff]" />}
             {copiedMissing ? "Đã copy danh sách sách thiếu!" : "Copy danh sách sách thiếu"}
           </button>
         )}
