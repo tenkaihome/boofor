@@ -22,7 +22,7 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
             <Sheet className="w-5 h-5 text-emerald-300" />
           </div>
           <div className="space-y-0.5">
-            <h4 className="text-sm font-bold">Đã bóc tách thành công {parsedBooks.length} cuốn sách</h4>
+            <h4 className="text-sm font-bold text-[#ffffff]">Đã bóc tách thành công {parsedBooks.length} cuốn sách</h4>
             <p className="text-[11px] text-indigo-200">
               Nhấp nút sao chép, sau đó mở Google Sheets/Excel và nhấn dán (Ctrl + V).
             </p>
@@ -31,11 +31,10 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
 
         <button
           onClick={onCopyResults}
-          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 ${
-            copied
-              ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : "bg-[#ffffff] text-indigo-950 hover:bg-[#f3f4f6] shadow-sm"
-          }`}
+          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 ${copied
+            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+            : "bg-[#ffffff] text-indigo-950 hover:bg-[#f3f4f6] shadow-sm"
+            }`}
         >
           {copied ? (
             <>
@@ -95,11 +94,10 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
                     </td>
                     <td className="py-3 px-5">
                       <span
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                          isFree
-                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
-                            : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50"
-                        }`}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${isFree
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
+                          : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50"
+                          }`}
                       >
                         {book.price}
                       </span>
