@@ -104,7 +104,7 @@ export const PromptTab: React.FC<PromptTabProps> = ({
               <BookOpen className="w-5 h-5 text-indigo-600" />
               Danh sách sách & Copy nhanh
             </h2>
-            <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-transparent dark:border-indigo-900/30 px-2.5 py-0.5 rounded-full font-semibold">
               {parsedBooks.length} sách
             </span>
           </div>
@@ -207,7 +207,7 @@ export const PromptTab: React.FC<PromptTabProps> = ({
           </div>
 
           {promptTemplate && title1 && promptPlaceholderBook ? (
-            <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
+            <div className="w-full p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30 rounded-lg text-sm text-gray-800 whitespace-pre-wrap max-h-[60vh] overflow-y-auto leading-relaxed">
               {generatedPrompt}
             </div>
           ) : (

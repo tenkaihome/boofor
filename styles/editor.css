@@ -19,7 +19,7 @@
 .prose td,
 .prose th {
   min-width: 1em;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-gray-200);
   padding: 6px 8px;
   vertical-align: top;
   box-sizing: border-box;
@@ -29,5 +29,5 @@
 .prose th {
   font-weight: bold;
   text-align: left;
-  background-color: #f8fafc;
+  background-color: var(--color-gray-50);
 }
