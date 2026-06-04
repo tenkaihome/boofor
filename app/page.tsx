@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useBookState } from "@/hooks/useBookState";
 import { FormatterTab } from "@/components/tabs/FormatterTab";
 import { PromptTab } from "@/components/tabs/PromptTab";
@@ -7,155 +8,252 @@ import { SplitterTab } from "@/components/tabs/SplitterTab";
 import { ReconcilerTab } from "@/components/tabs/ReconcilerTab";
 import { Modal } from "@/components/common/Modal";
 import { AuthorTabs } from "@/components/common/AuthorTabs";
-import { FileText, Wand2, TableProperties, BookOpen } from "lucide-react";
+import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { AuthScreen } from "@/components/auth/AuthScreen";
+import { ManageRoles } from "@/components/admin/ManageRoles";
 
 export default function Home() {
   const state = useBookState();
+  const { user, isLoading, logout } = useAuth();
+  const [activeMainTab, setActiveMainTab] = useState<"book" | "manage-roles">("book");
 
-  if (!state.isMounted) return null;
+  if (!state.isMounted || isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#090d16] text-white">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
+        <span className="text-sm text-gray-400">Đang tải thông tin phiên làm việc...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  if (user.role === "guest") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#090d16] p-4 relative overflow-hidden font-sans text-white">
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-orange-950/10 blur-[120px] pointer-events-none" />
+        <div className="w-full max-w-md bg-[#111827]/85 border border-[#1f2937] rounded-2xl shadow-2xl p-8 backdrop-blur-xl relative z-10 text-center">
+          <div className="inline-flex p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 mb-4">
+            <Clock className="w-6 h-6 text-orange-400 animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-100">
+            Chờ duyệt tài khoản
+          </h2>
+          <p className="text-gray-400 mt-4 text-sm leading-relaxed">
+            Tài khoản <strong className="text-gray-200">{user.username}</strong> của bạn vừa được đăng ký thành công với quyền hạn mặc định là <span className="text-orange-400 font-semibold">guest</span>.
+          </p>
+          <p className="text-gray-400 mt-2 text-sm leading-relaxed">
+            Vui lòng liên hệ với Quản trị viên (Admin) để được cấp quyền thành <span className="text-indigo-400 font-semibold">user</span> trước khi truy cập vào hệ thống.
+          </p>
+          <button
+            onClick={logout}
+            className="w-full mt-8 py-3 px-4 bg-[#1f2937] hover:bg-gray-800 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+          >
+            <LogOut className="w-4 h-4" />
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
-        {/* Author Workspace Tabs */}
-        <AuthorTabs
-          tabs={state.tabs}
-          activeTabId={state.activeTabId}
-          activeAuthor={state.author}
-          onSelectTab={state.switchTab}
-          onAddTab={state.addTab}
-          onDeleteTab={state.deleteTab}
-          onRenameTab={state.renameTab}
-        />
+        {/* Top user profile header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white px-5 py-3 rounded-xl shadow-sm border border-gray-200 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold uppercase text-sm">
+              {user.username.charAt(0)}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-800 text-sm block">Xin chào, {user.username}</span>
+              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                {user.role}
+              </span>
+              &nbsp;&nbsp;<span className="text-[12px] text-black">telegram: @caramencafe</span>
+            </div>
+          </div>
 
-        {/* Tab Navigation */}
-        <div className="tab-navigation-container">
-          <button
-            onClick={() => state.setActiveTab("formatter")}
-            className={`tab-button cursor-pointer ${
-              state.activeTab === "formatter"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            Formatter
-          </button>
-          <button
-            onClick={() => state.setActiveTab("prompt")}
-            className={`tab-button cursor-pointer ${
-              state.activeTab === "prompt"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <Wand2 className="w-4 h-4" />
-            Prompt Generator
-          </button>
-          <button
-            onClick={() => state.setActiveTab("splitter")}
-            className={`tab-button cursor-pointer ${
-              state.activeTab === "splitter"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <TableProperties className="w-4 h-4" />
-            Sheet Splitter
-          </button>
-          <button
-            onClick={() => state.setActiveTab("reconciler")}
-            className={`tab-button cursor-pointer ${
-              state.activeTab === "reconciler"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            Catalog Reconciler
-          </button>
+          <div className="flex items-center gap-4 ml-auto sm:ml-0">
+            {user.role === "admin" && (
+              <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+                <button
+                  onClick={() => setActiveMainTab("book")}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "book"
+                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Book
+                </button>
+                <button
+                  onClick={() => setActiveMainTab("manage-roles")}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all ${activeMainTab === "manage-roles"
+                    ? "bg-white text-indigo-600 shadow-sm animate-scaleUp"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Manage Roles
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={logout}
+              className="text-sm font-semibold text-gray-500 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1.5 border border-gray-250 hover:border-gray-350 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+            >
+              <LogOut className="w-4 h-4" />
+              Đăng xuất
+            </button>
+          </div>
         </div>
 
-        {/* Tab content rendering */}
-        {state.activeTab === "formatter" && (
-          <FormatterTab
-            editor={state.editor}
-            isFormatting={state.isFormatting}
-            isExporting={state.isExporting}
-            isExportingPDF={state.isExportingPDF}
-            formatContent={state.formatContent}
-            triggerExportWord={state.triggerExportWord}
-            triggerExportPDF={state.triggerExportPDF}
-            detectedChapters={state.detectedChapters}
-            setButtonPos={state.setButtonPos}
-            setIsChapterListOpen={state.setIsChapterListOpen}
-            setIsChapterListVisible={state.setIsChapterListVisible}
-            introductionText={state.introductionText}
-            copiedId={state.copiedId}
-            handleCopy={state.handleCopy}
-            isSettingsOpen={state.isSettingsOpen}
-            setIsSettingsOpen={state.setIsSettingsOpen}
-            chapterKeywords={state.chapterKeywords}
-            setChapterKeywords={state.setChapterKeywords}
-            customBlockPhrases={state.customBlockPhrases}
-            setCustomBlockPhrases={state.setCustomBlockPhrases}
-            isBookListOpen={state.isBookListOpen}
-            setIsBookListOpen={state.setIsBookListOpen}
-            bookListText={state.bookListText}
-            setBookListText={state.setBookListText}
-            parsedBooks={state.parsedBooks}
-            handleSelectBook={state.handleSelectBook}
-            title1={state.title1}
-            setTitle1={state.setTitle1}
-            title2={state.title2}
-            setTitle2={state.setTitle2}
-            author={state.author}
-            setAuthor={state.setAuthor}
-            authorEditor={state.authorEditor}
-            authorInfoMap={state.authorInfoMap}
-            genresText={state.genresText}
-            setGenresText={state.setGenresText}
-          />
-        )}
+        {activeMainTab === "book" ? (
+          <>
+            {/* Author Workspace Tabs */}
+            <AuthorTabs
+              tabs={state.tabs}
+              activeTabId={state.activeTabId}
+              activeAuthor={state.author}
+              onSelectTab={state.switchTab}
+              onAddTab={state.addTab}
+              onDeleteTab={state.deleteTab}
+              onRenameTab={state.renameTab}
+            />
 
-        {state.activeTab === "prompt" && (
-          <PromptTab
-            promptTemplate={state.promptTemplate}
-            setPromptTemplate={state.setPromptTemplate}
-            promptPlaceholderBook={state.promptPlaceholderBook}
-            setPromptPlaceholderBook={state.setPromptPlaceholderBook}
-            parsedBooks={state.parsedBooks}
-            handleSelectBook={state.handleSelectBook}
-            title1={state.title1}
-            title2={state.title2}
-            copiedId={state.copiedId}
-            handleCopy={state.handleCopy}
-            editor={state.editor}
-            setActiveTab={state.setActiveTab}
-            selectBook={state.selectBook}
-            isPromptOpen={state.isPromptOpen}
-            setIsPromptOpen={state.setIsPromptOpen}
-          />
-        )}
+            {/* Tab Navigation */}
+            <div className="tab-navigation-container">
+              <button
+                onClick={() => state.setActiveTab("formatter")}
+                className={`tab-button cursor-pointer ${state.activeTab === "formatter"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
+              >
+                <FileText className="w-4 h-4" />
+                Formatter
+              </button>
+              <button
+                onClick={() => state.setActiveTab("prompt")}
+                className={`tab-button cursor-pointer ${state.activeTab === "prompt"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
+              >
+                <Wand2 className="w-4 h-4" />
+                Prompt Generator
+              </button>
+              <button
+                onClick={() => state.setActiveTab("splitter")}
+                className={`tab-button cursor-pointer ${state.activeTab === "splitter"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
+              >
+                <TableProperties className="w-4 h-4" />
+                Sheet Splitter
+              </button>
+              <button
+                onClick={() => state.setActiveTab("reconciler")}
+                className={`tab-button cursor-pointer ${state.activeTab === "reconciler"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Catalog Reconciler
+              </button>
+            </div>
 
-        {state.activeTab === "splitter" && (
-          <SplitterTab
-            splitterInput={state.splitterInput}
-            setSplitterInput={state.setSplitterInput}
-            copiedId={state.copiedId}
-            handleCopy={state.handleCopy}
-          />
-        )}
+            {/* Tab content rendering */}
+            {state.activeTab === "formatter" && (
+              <FormatterTab
+                editor={state.editor}
+                isFormatting={state.isFormatting}
+                isExporting={state.isExporting}
+                isExportingPDF={state.isExportingPDF}
+                formatContent={state.formatContent}
+                triggerExportWord={state.triggerExportWord}
+                triggerExportPDF={state.triggerExportPDF}
+                detectedChapters={state.detectedChapters}
+                setButtonPos={state.setButtonPos}
+                setIsChapterListOpen={state.setIsChapterListOpen}
+                setIsChapterListVisible={state.setIsChapterListVisible}
+                introductionText={state.introductionText}
+                copiedId={state.copiedId}
+                handleCopy={state.handleCopy}
+                isSettingsOpen={state.isSettingsOpen}
+                setIsSettingsOpen={state.setIsSettingsOpen}
+                chapterKeywords={state.chapterKeywords}
+                setChapterKeywords={state.setChapterKeywords}
+                customBlockPhrases={state.customBlockPhrases}
+                setCustomBlockPhrases={state.setCustomBlockPhrases}
+                isBookListOpen={state.isBookListOpen}
+                setIsBookListOpen={state.setIsBookListOpen}
+                bookListText={state.bookListText}
+                setBookListText={state.setBookListText}
+                parsedBooks={state.parsedBooks}
+                handleSelectBook={state.handleSelectBook}
+                title1={state.title1}
+                setTitle1={state.setTitle1}
+                title2={state.title2}
+                setTitle2={state.setTitle2}
+                author={state.author}
+                setAuthor={state.setAuthor}
+                authorEditor={state.authorEditor}
+                authorInfoMap={state.authorInfoMap}
+                genresText={state.genresText}
+                setGenresText={state.setGenresText}
+              />
+            )}
 
-        {state.activeTab === "reconciler" && (
-          <ReconcilerTab
-            rawText={state.reconcilerRawText}
-            setRawText={state.setReconcilerRawText}
-            warehouseText={state.bookListText}
-            setWarehouseText={state.setBookListText}
-          />
-        )}
+            {state.activeTab === "prompt" && (
+              <PromptTab
+                promptTemplate={state.promptTemplate}
+                setPromptTemplate={state.setPromptTemplate}
+                promptPlaceholderBook={state.promptPlaceholderBook}
+                setPromptPlaceholderBook={state.setPromptPlaceholderBook}
+                parsedBooks={state.parsedBooks}
+                handleSelectBook={state.handleSelectBook}
+                title1={state.title1}
+                title2={state.title2}
+                copiedId={state.copiedId}
+                handleCopy={state.handleCopy}
+                editor={state.editor}
+                setActiveTab={state.setActiveTab}
+                selectBook={state.selectBook}
+                isPromptOpen={state.isPromptOpen}
+                setIsPromptOpen={state.setIsPromptOpen}
+              />
+            )}
 
+            {state.activeTab === "splitter" && (
+              <SplitterTab
+                splitterInput={state.splitterInput}
+                setSplitterInput={state.setSplitterInput}
+                copiedId={state.copiedId}
+                handleCopy={state.handleCopy}
+              />
+            )}
+
+            {state.activeTab === "reconciler" && (
+              <ReconcilerTab
+                rawText={state.reconcilerRawText}
+                setRawText={state.setReconcilerRawText}
+                warehouseText={state.bookListText}
+                setWarehouseText={state.setBookListText}
+              />
+            )}
+          </>
+        ) : (
+          user.role === "admin" && <ManageRoles />
+        )}
       </div>
 
       {/* Chapter List Modal */}
