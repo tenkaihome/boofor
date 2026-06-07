@@ -20,6 +20,7 @@
   --color-gray-400-custom: #9ca3af;
   --color-gray-500-custom: #6b7280;
   --color-gray-600-custom: #4b5563;
+  --color-gray-700-custom: #374151;
   --color-gray-800-custom: #1f2937;
   --color-gray-900-custom: #111827;
 }
@@ -38,11 +39,12 @@
   --color-gray-400-custom: #8b949e;     /* placeholder / icons */
   --color-gray-500-custom: #8b949e;     /* description / small metadata text */
   --color-gray-600-custom: #b1bac4;     /* regular text */
+  --color-gray-700-custom: #c9d1d9;     /* medium-dark text */
   --color-gray-800-custom: #c9d1d9;     /* titles / bold text */
   --color-gray-900-custom: #f0f6fc;     /* headings / main text */
 }
 
-@theme inline {
+@theme {
   --color-white: var(--color-white-custom);
   --color-gray-50: var(--color-gray-50-custom);
   --color-gray-100: var(--color-gray-100-custom);
@@ -54,6 +56,7 @@
   --color-gray-400: var(--color-gray-400-custom);
   --color-gray-500: var(--color-gray-500-custom);
   --color-gray-600: var(--color-gray-600-custom);
+  --color-gray-700: var(--color-gray-700-custom);
   --color-gray-800: var(--color-gray-800-custom);
   --color-gray-900: var(--color-gray-900-custom);
   
@@ -96,5 +99,96 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--color-gray-300) transparent;
 }
+
+/* 
+  Fix Dark Mode Text visibility in TipTap Editor 
+  Overrides inline text color styles (e.g. from copy-pasting from ChatGPT)
+*/
+.dark .prose p,
+.dark .prose span,
+.dark .prose strong,
+.dark .prose b,
+.dark .prose em,
+.dark .prose i,
+.dark .prose a,
+.dark .prose u,
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6,
+.dark .prose li,
+.dark .prose td,
+.dark .prose th {
+  color: var(--color-gray-900) !important;
+}
+
+
+/* 
+  Fix text-white color issue in dark mode for buttons and cards with dark backgrounds.
+  Uses high specificity class selectors (.bg-xxx.text-white) to win over Tailwind's text-white utility.
+*/
+.bg-indigo-600,
+.bg-indigo-700,
+.bg-blue-600,
+.bg-blue-700,
+.bg-red-600,
+.bg-red-700,
+.bg-violet-600,
+.bg-violet-700,
+.bg-emerald-600,
+.bg-emerald-700,
+.bg-indigo-950,
+.bg-indigo-600.text-white,
+.bg-indigo-700.text-white,
+.bg-blue-600.text-white,
+.bg-blue-700.text-white,
+.bg-red-600.text-white,
+.bg-red-700.text-white,
+.bg-violet-600.text-white,
+.bg-violet-700.text-white,
+.bg-emerald-600.text-white,
+.bg-emerald-700.text-white,
+.bg-indigo-950.text-white,
+.tab-button.bg-indigo-600.text-white {
+  color: #ffffff !important;
+}
+
+/* Ensure inner elements and icons inherit the forced white color */
+.bg-indigo-600 *,
+.bg-indigo-700 *,
+.bg-blue-600 *,
+.bg-blue-700 *,
+.bg-red-600 *,
+.bg-red-700 *,
+.bg-violet-600 *,
+.bg-violet-700 *,
+.bg-emerald-600 *,
+.bg-emerald-700 *,
+.bg-indigo-950 *,
+.tab-button.bg-indigo-600.text-white * {
+  color: inherit !important;
+}
+
+/* Force gray-700 and gray-600 to be highly readable in dark mode */
+.dark .text-gray-700 {
+  color: var(--color-gray-700-custom, #c9d1d9) !important;
+}
+
+.dark .text-gray-600 {
+  color: var(--color-gray-600-custom, #b1bac4) !important;
+}
+
+/* Ensure icons/SVGs in gray-700 and gray-600 elements also color properly */
+.dark .text-gray-700 svg,
+.dark .text-gray-700 stroke,
+.dark .text-gray-600 svg,
+.dark .text-gray-600 stroke {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+
 
 

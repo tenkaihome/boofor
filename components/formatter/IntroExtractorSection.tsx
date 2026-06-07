@@ -34,7 +34,7 @@ export const IntroExtractorSection: React.FC<IntroExtractorSectionProps> = ({
       </p>
       {introductionText ? (
         <div
-          className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm max-w-none"
+          className="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 overflow-y-auto prose prose-sm dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: introductionText }}
         />
       ) : (

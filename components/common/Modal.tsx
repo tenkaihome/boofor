@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, List, Download, Loader2, CheckSquare2, Square } from "lucide-react";
+import { X, List, Download, Loader2, CheckSquare2, Square, ChevronDown } from "lucide-react";
 import { saveAs } from "file-saver";
 import { getProcessedHtml } from "@/utils/formatter";
 
@@ -65,6 +65,19 @@ export const Modal: React.FC<ModalProps> = ({
   const [exportFormat, setExportFormat] = useState<"docx" | "pdf" | "epub">("docx");
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
+  const [isFormatDropdownOpen, setIsFormatDropdownOpen] = useState(false);
+  const formatDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close format dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (formatDropdownRef.current && !formatDropdownRef.current.contains(event.target as Node)) {
+        setIsFormatDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Reset/initialize selection state when modal opens or detectedChapters change
   useEffect(() => {
@@ -258,17 +271,73 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
 
             {/* Export Format Select */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto" ref={formatDropdownRef}>
               <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Định dạng:</label>
-              <select
-                value={exportFormat}
-                onChange={(e) => setExportFormat(e.target.value as any)}
-                className="w-full sm:w-auto text-xs px-2.5 py-1.5 bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-slate-700 rounded-lg text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
-              >
-                <option value="docx">Word (.docx)</option>
-                <option value="epub">EPUB (.epub)</option>
-                <option value="pdf">PDF (.pdf)</option>
-              </select>
+              <div className="relative w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsFormatDropdownOpen(!isFormatDropdownOpen)}
+                  className="w-full sm:w-34 text-xs pl-3 pr-6 py-1.5 bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d] rounded-lg text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium cursor-pointer shadow-sm text-left flex items-center justify-between transition-all duration-200 whitespace-nowrap"
+                >
+                  <span className="whitespace-nowrap pr-1">
+                    {exportFormat === "docx" && "Word (.docx)"}
+                    {exportFormat === "epub" && "EPUB (.epub)"}
+                    {exportFormat === "pdf" && "PDF (.pdf)"}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-gray-400 dark:text-slate-500 transition-transform duration-200 flex-shrink-0 ${
+                      isFormatDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isFormatDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg shadow-lg py-1 animate-fadeIn divide-y divide-gray-50 dark:divide-slate-800 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportFormat("docx");
+                        setIsFormatDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors whitespace-nowrap ${
+                        exportFormat === "docx"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                          : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      Word (.docx)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportFormat("epub");
+                        setIsFormatDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors whitespace-nowrap ${
+                        exportFormat === "epub"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                          : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      EPUB (.epub)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportFormat("pdf");
+                        setIsFormatDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors whitespace-nowrap ${
+                        exportFormat === "pdf"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                          : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      PDF (.pdf)
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
