@@ -282,6 +282,10 @@ export default function Home() {
         title="Các mục đã nhận diện"
         detectedChapters={state.detectedChapters}
         buttonPos={state.buttonPos}
+        editorHtml={state.editor ? state.editor.getHTML() : ""}
+        title1={state.title1}
+        title2={state.title2}
+        author={state.author}
       />
     </div>
   );
