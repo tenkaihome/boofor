@@ -18,9 +18,11 @@ interface FormatterTabProps {
   isFormatting: boolean;
   isExporting: boolean;
   isExportingPDF: boolean;
+  isExportingEPUB: boolean;
   formatContent: () => void;
   triggerExportWord: () => void;
   triggerExportPDF: () => void;
+  triggerExportEPUB: () => void;
   detectedChapters: string[];
   setButtonPos: (pos: { x: number; y: number }) => void;
   setIsChapterListOpen: (open: boolean) => void;
@@ -57,9 +59,11 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
   isFormatting,
   isExporting,
   isExportingPDF,
+  isExportingEPUB,
   formatContent,
   triggerExportWord,
   triggerExportPDF,
+  triggerExportEPUB,
   detectedChapters,
   setButtonPos,
   setIsChapterListOpen,
@@ -99,9 +103,11 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
           isFormatting={isFormatting}
           isExporting={isExporting}
           isExportingPDF={isExportingPDF}
+          isExportingEPUB={isExportingEPUB}
           formatContent={formatContent}
           triggerExportWord={triggerExportWord}
           triggerExportPDF={triggerExportPDF}
+          triggerExportEPUB={triggerExportEPUB}
           detectedChapters={detectedChapters}
           setButtonPos={setButtonPos}
           setIsChapterListOpen={setIsChapterListOpen}

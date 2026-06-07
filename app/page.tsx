@@ -191,9 +191,11 @@ export default function Home() {
                 isFormatting={state.isFormatting}
                 isExporting={state.isExporting}
                 isExportingPDF={state.isExportingPDF}
+                isExportingEPUB={state.isExportingEPUB}
                 formatContent={state.formatContent}
                 triggerExportWord={state.triggerExportWord}
                 triggerExportPDF={state.triggerExportPDF}
+                triggerExportEPUB={state.triggerExportEPUB}
                 detectedChapters={state.detectedChapters}
                 setButtonPos={state.setButtonPos}
                 setIsChapterListOpen={state.setIsChapterListOpen}
