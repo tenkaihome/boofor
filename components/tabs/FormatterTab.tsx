@@ -177,7 +177,9 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
       return normalizeStringForMatch(b.title) === targetKey || b.title.trim().toLowerCase() === title1.trim().toLowerCase();
     });
 
-    return matchedBook ? matchedBook.price : null;
+    if (!matchedBook) return null;
+    // Strip the dollar sign ($) from the price string to display raw amount
+    return matchedBook.price.replace(/^\$/, "").trim();
   }, [reconcilerRawText, title1]);
 
   return (

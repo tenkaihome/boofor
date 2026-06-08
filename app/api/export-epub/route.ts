@@ -25,7 +25,7 @@ function splitHtmlIntoChapters(html: string): any[] {
     return [{ title: "Content", content: html }];
   }
   
-  // Add content before first H1 as a separate introduction/title chapter if it exists
+  // Add content before first H1 as a separate introduction chapter if it exists (Title Page is omitted)
   const firstMatch = matches[0];
   const initialContent = html.substring(0, firstMatch.index).trim();
   if (initialContent) {
@@ -33,24 +33,23 @@ function splitHtmlIntoChapters(html: string): any[] {
     const pageBreakRegex = /<div class="page-break" style="page-break-after: always;"><\/div>/i;
     const parts = initialContent.split(pageBreakRegex);
     
-    // The first part is the Title Page
-    const titlePageContent = parts[0].trim();
-    if (titlePageContent && titlePageContent.replace(/<[^>]*>/g, "").trim().length > 0) {
-      sections.push({
-        title: "Title Page",
-        content: titlePageContent,
-        excludeFromToc: true,
-        beforeToc: true,
-      });
-    }
-    
-    // The second part (if any) is the actual introduction/preface content
     if (parts.length > 1) {
+      // The first part is the Title Page (omitted for EPUB)
+      // The second part (if any) is the actual introduction/preface content
       const remainingIntro = parts.slice(1).join('<div class="page-break" style="page-break-after: always;"></div>').trim();
       if (remainingIntro && remainingIntro.replace(/<[^>]*>/g, "").trim().length > 0) {
         sections.push({
           title: "Introduction",
           content: remainingIntro,
+        });
+      }
+    } else {
+      // Only one part exists, treat it as the Introduction
+      const introContent = parts[0].trim();
+      if (introContent && introContent.replace(/<[^>]*>/g, "").trim().length > 0) {
+        sections.push({
+          title: "Introduction",
+          content: introContent,
         });
       }
     }
@@ -59,7 +58,9 @@ function splitHtmlIntoChapters(html: string): any[] {
   for (let i = 0; i < matches.length; i++) {
     const start = matches[i].index;
     const end = (i + 1 < matches.length) ? matches[i + 1].index : html.length;
-    const content = html.substring(start, end).trim();
+    // Strip the matched leading <h1>...</h1> header to prevent duplicate headings
+    // since epub-gen-memory automatically prepends the chapter title as a header.
+    const content = html.substring(start + matches[i].length, end).trim();
     
     sections.push({
       title: matches[i].title,
