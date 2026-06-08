@@ -13,6 +13,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import { cleanAndFormatHtml, getProcessedHtml } from "@/utils/formatter";
 import { exportToWord, exportToPDF, exportToEPUB } from "@/services/exportService";
 import { dbGet, dbSet } from "@/utils/db";
+import { saveAs } from "file-saver";
 
 export interface AuthorTab {
   id: string;
@@ -89,6 +90,14 @@ export const useBookState = () => {
   const [authorInfoMap, setAuthorInfoMap] = useState<Record<string, string>>({});
   const [bookContentMap, setBookContentMap] = useState<Record<string, string>>({});
 
+  const [bookCovers, setBookCovers] = useState<Record<string, string>>({});
+  const [coverPromptTemplate, setCoverPromptTemplate] = useState("");
+  const [coverPromptPlaceholderBook, setCoverPromptPlaceholderBook] = useState("");
+  const [promptPlaceholderAuthor, setPromptPlaceholderAuthor] = useState("");
+  const [coverPromptPlaceholderAuthor, setCoverPromptPlaceholderAuthor] = useState("");
+  const [isBatchExporting, setIsBatchExporting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState("");
+
   const editorRestoredRef = useRef(false);
   const authorEditorRestoredRef = useRef(false);
   const isSwitchingTabRef = useRef(false);
@@ -121,10 +130,27 @@ export const useBookState = () => {
       const oldAuthorInfoMap = JSON.parse(localStorage.getItem("bofo_authorInfoMap") || "{}");
       setAuthorInfoMap(oldAuthorInfoMap);
 
+      // Load covers from IndexedDB
+      const savedCovers = await dbGet("bofo_bookCovers");
+      if (savedCovers) {
+        setBookCovers(savedCovers);
+      }
+
       const savedTemplate = localStorage.getItem("bofo_promptTemplate");
       const savedPlaceholder = localStorage.getItem("bofo_promptPlaceholderBook");
       let initialTemplate = savedTemplate !== null ? savedTemplate : "Hãy viết Chapter 1 cho cuốn sách English for Beginners với 1500 từ...";
       let initialPlaceholder = savedPlaceholder !== null ? savedPlaceholder : "English for Beginners";
+
+      const savedCoverTemplate = localStorage.getItem("bofo_coverPromptTemplate");
+      const savedCoverPlaceholder = localStorage.getItem("bofo_coverPromptPlaceholderBook");
+      let initialCoverTemplate = savedCoverTemplate !== null ? savedCoverTemplate : "Hãy thiết kế một ảnh bìa nghệ thuật cho cuốn sách \"English for Beginners\". Phong cách hiện đại, tối giản, màu sắc trang nhã, phù hợp với nội dung giáo dục.";
+      let initialCoverPlaceholder = savedCoverPlaceholder !== null ? savedCoverPlaceholder : "English for Beginners";
+
+      const savedAuthorPlaceholder = localStorage.getItem("bofo_promptPlaceholderAuthor");
+      let initialAuthorPlaceholder = savedAuthorPlaceholder !== null ? savedAuthorPlaceholder : "ANGEL MENDEZ";
+
+      const savedCoverAuthorPlaceholder = localStorage.getItem("bofo_coverPromptPlaceholderAuthor");
+      let initialCoverAuthorPlaceholder = savedCoverAuthorPlaceholder !== null ? savedCoverAuthorPlaceholder : "ANGEL MENDEZ";
 
       if (savedTabs && Array.isArray(savedTabs) && savedTabs.length > 0) {
         const parsedTabs = savedTabs as AuthorTab[];
@@ -220,6 +246,10 @@ export const useBookState = () => {
 
       setPromptTemplate(initialTemplate);
       setPromptPlaceholderBook(initialPlaceholder);
+      setPromptPlaceholderAuthor(initialAuthorPlaceholder);
+      setCoverPromptTemplate(initialCoverTemplate);
+      setCoverPromptPlaceholderBook(initialCoverPlaceholder);
+      setCoverPromptPlaceholderAuthor(initialCoverAuthorPlaceholder);
       setIsMounted(true);
     };
 
@@ -388,6 +418,10 @@ export const useBookState = () => {
       try {
         localStorage.setItem("bofo_promptTemplate", promptTemplate);
         localStorage.setItem("bofo_promptPlaceholderBook", promptPlaceholderBook);
+        localStorage.setItem("bofo_promptPlaceholderAuthor", promptPlaceholderAuthor);
+        localStorage.setItem("bofo_coverPromptTemplate", coverPromptTemplate);
+        localStorage.setItem("bofo_coverPromptPlaceholderBook", coverPromptPlaceholderBook);
+        localStorage.setItem("bofo_coverPromptPlaceholderAuthor", coverPromptPlaceholderAuthor);
       } catch (e) {
         console.error("Failed to save prompt config to localStorage", e);
       }
@@ -464,6 +498,10 @@ export const useBookState = () => {
     customBlockPhrases,
     promptTemplate,
     promptPlaceholderBook,
+    promptPlaceholderAuthor,
+    coverPromptTemplate,
+    coverPromptPlaceholderBook,
+    coverPromptPlaceholderAuthor,
     splitterInput,
     reconcilerRawText,
     reconcilerWarehouseText,
@@ -841,12 +879,108 @@ export const useBookState = () => {
     setIsExportingEPUB(true);
     try {
       const processedHtml = getProcessedHtml(editor.getHTML(), title1, title2, author);
-      await exportToEPUB(processedHtml, title1, title2, author);
+      const coverBase64 = bookCovers[title1] || undefined;
+      await exportToEPUB(processedHtml, title1, title2, author, coverBase64);
     } catch (err) {
       console.error(err);
       alert("Đã có lỗi xảy ra khi xuất file EPUB.");
     } finally {
       setIsExportingEPUB(false);
+    }
+  };
+
+  const saveBookCover = (bookTitle: string, base64Data: string) => {
+    setBookCovers(prev => {
+      const updated = { ...prev, [bookTitle]: base64Data };
+      dbSet("bofo_bookCovers", updated);
+      return updated;
+    });
+  };
+
+  const deleteBookCover = (bookTitle: string) => {
+    setBookCovers(prev => {
+      const updated = { ...prev };
+      delete updated[bookTitle];
+      dbSet("bofo_bookCovers", updated);
+      return updated;
+    });
+  };
+
+  const triggerBatchExportEPUB = async (selectedTitles: string[]) => {
+    if (selectedTitles.length === 0) {
+      alert("Vui lòng chọn ít nhất một cuốn sách để xuất.");
+      return;
+    }
+
+    setIsBatchExporting(true);
+    setBatchProgress("Đang chuẩn bị khởi tạo...");
+
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      let exportedCount = 0;
+      let skippedBooks: string[] = [];
+
+      for (let i = 0; i < selectedTitles.length; i++) {
+        const title = selectedTitles[i];
+        setBatchProgress(`Đang xuất (${i + 1}/${selectedTitles.length}): ${title}`);
+
+        const rawContent = bookContentMap[title] || "";
+        const isContentEmpty = !rawContent || rawContent.replace(/<[^>]*>/g, "").trim().length === 0;
+
+        if (isContentEmpty) {
+          skippedBooks.push(title);
+          continue;
+        }
+
+        const processedHtml = getProcessedHtml(rawContent, title, "", author);
+        const coverBase64 = bookCovers[title] || undefined;
+
+        const response = await fetch("/api/export-epub", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            html: processedHtml,
+            title: title,
+            author: author,
+            cover: coverBase64,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Lỗi khi xuất sách: ${title}`);
+        }
+
+        const epubBlob = await response.blob();
+        
+        const indexStr = String(i + 1).padStart(2, "0");
+        const filename = `${indexStr}. ${title}.epub`;
+        
+        zip.file(filename, epubBlob);
+        exportedCount++;
+      }
+
+      if (exportedCount > 0) {
+        setBatchProgress("Đang nén file ZIP...");
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipName = author
+          ? `Sach_${author.replace(/\s+/g, "_")}_EPUB.zip`
+          : "Danh_sach_sach_EPUB.zip";
+
+        saveAs(zipBlob, zipName);
+      }
+
+      let msg = `Đã xuất thành công ${exportedCount} sách ra file ZIP.`;
+      if (skippedBooks.length > 0) {
+        msg += `\n\nBỏ qua ${skippedBooks.length} sách do chưa có nội dung:\n- ` + skippedBooks.join("\n- ");
+      }
+      alert(msg);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Đã xảy ra lỗi trong quá trình xuất hàng loạt: ${err?.message || err}`);
+    } finally {
+      setIsBatchExporting(false);
+      setBatchProgress("");
     }
   };
 
@@ -909,6 +1043,20 @@ export const useBookState = () => {
     triggerExportPDF,
     triggerExportEPUB,
     authorInfoMap,
+    bookCovers,
+    saveBookCover,
+    deleteBookCover,
+    coverPromptTemplate,
+    setCoverPromptTemplate,
+    coverPromptPlaceholderBook,
+    setCoverPromptPlaceholderBook,
+    promptPlaceholderAuthor,
+    setPromptPlaceholderAuthor,
+    coverPromptPlaceholderAuthor,
+    setCoverPromptPlaceholderAuthor,
+    isBatchExporting,
+    batchProgress,
+    triggerBatchExportEPUB,
     // Multi-tab workspace features
     tabs,
     setTabs,

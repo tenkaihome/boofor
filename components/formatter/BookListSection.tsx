@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, BookOpen } from "lucide-react";
+import { ChevronDown, BookOpen, Loader2 } from "lucide-react";
 
 interface Book {
   title1: string;
@@ -16,6 +16,11 @@ interface BookListSectionProps {
   handleSelectBook: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   title1: string;
   title2: string;
+  bookContentMap?: Record<string, string>;
+  bookCovers?: Record<string, string>;
+  isBatchExporting?: boolean;
+  batchProgress?: string;
+  triggerBatchExportEPUB?: (selectedTitles: string[]) => Promise<void>;
 }
 
 export const BookListSection: React.FC<BookListSectionProps> = ({
@@ -27,9 +32,21 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
   handleSelectBook,
   title1,
   title2,
+  bookContentMap,
+  bookCovers,
+  isBatchExporting = false,
+  batchProgress = "",
+  triggerBatchExportEPUB,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [selectedBatchTitles, setSelectedBatchTitles] = useState<string[]>([]);
+
+  // Auto-select all books by default when parsedBooks changes
+  useEffect(() => {
+    setSelectedBatchTitles(parsedBooks.map((b) => b.title1));
+  }, [parsedBooks]);
 
   // Close on click outside
   useEffect(() => {
@@ -41,6 +58,21 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Center selected item when dropdown opens
+  useEffect(() => {
+    if (isOpen && listRef.current) {
+      const container = listRef.current;
+      const selectedEl = container.querySelector('[data-selected="true"]');
+      if (selectedEl) {
+        const selHtml = selectedEl as HTMLElement;
+        container.scrollTop =
+          selHtml.offsetTop -
+          container.clientHeight / 2 +
+          selHtml.clientHeight / 2;
+      }
+    }
+  }, [isOpen]);
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -103,9 +135,10 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
               </button>
 
               {isOpen && (
-                <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-[#161b22] border border-gray-250 dark:border-[#30363d] rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 divide-y divide-gray-50 dark:divide-slate-800 animate-fadeIn">
+                <div ref={listRef} className="absolute z-50 w-full mt-1.5 bg-white dark:bg-[#161b22] border border-gray-250 dark:border-[#30363d] rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 divide-y divide-gray-50 dark:divide-slate-800 animate-fadeIn">
                   <button
                     type="button"
+                    data-selected={selectedIdx === -1}
                     onClick={() => {
                       const fakeEvent = {
                         target: { value: "" }
@@ -132,6 +165,7 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
                         <button
                           key={idx}
                           type="button"
+                          data-selected={isSelected}
                           onClick={() => {
                             const fakeEvent = {
                               target: { value: String(idx) }
@@ -158,6 +192,104 @@ export const BookListSection: React.FC<BookListSectionProps> = ({
           );
         })()}
       </div>
+
+      {/* Batch Export Section */}
+      {parsedBooks.length > 0 && triggerBatchExportEPUB && (
+        <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">
+              Xuất bản hàng loạt EPUB (.zip)
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const allTitles = parsedBooks.map(b => b.title1);
+                  setSelectedBatchTitles(allTitles);
+                }}
+                className="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold cursor-pointer"
+              >
+                Chọn tất cả
+              </button>
+              <span className="text-gray-300 dark:text-slate-700">|</span>
+              <button
+                type="button"
+                onClick={() => setSelectedBatchTitles([])}
+                className="text-[11px] text-gray-500 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-350 font-semibold cursor-pointer"
+              >
+                Bỏ chọn
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-slate-800 rounded-lg p-2 bg-gray-50 dark:bg-[#0d1117]/50 space-y-1">
+            {parsedBooks.map((book, idx) => {
+              const hasContent = bookContentMap && bookContentMap[book.title1] && bookContentMap[book.title1].replace(/<[^>]*>/g, "").trim().length > 0;
+              const hasCover = bookCovers && bookCovers[book.title1];
+              const isChecked = selectedBatchTitles.includes(book.title1);
+
+              return (
+                <label
+                  key={idx}
+                  className="flex items-center justify-between text-xs text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-slate-800/40 p-1.5 rounded cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        setSelectedBatchTitles((prev) =>
+                          prev.includes(book.title1)
+                            ? prev.filter((t) => t !== book.title1)
+                            : [...prev, book.title1]
+                        );
+                      }}
+                      className="rounded text-indigo-600 focus:ring-indigo-500/20 border-gray-300 dark:border-slate-700"
+                    />
+                    <span className="truncate max-w-[200px]">
+                      {idx + 1}. {book.title1}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 text-[10px]">
+                    {hasContent ? (
+                      <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-1 rounded font-medium">
+                        Nội dung
+                      </span>
+                    ) : (
+                      <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-500 px-1 rounded font-medium">
+                        Trống
+                      </span>
+                    )}
+                    {hasCover && (
+                      <span className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 px-1 rounded font-medium">
+                        Ảnh bìa
+                      </span>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={isBatchExporting || selectedBatchTitles.length === 0}
+            onClick={() => triggerBatchExportEPUB(selectedBatchTitles)}
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-600 text-white disabled:text-gray-400 font-semibold rounded-lg text-xs transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isBatchExporting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span className="truncate max-w-[220px]">
+                  {batchProgress || "Đang xuất..."}
+                </span>
+              </>
+            ) : (
+              <span>Xuất {selectedBatchTitles.length} Sách ra file ZIP (.zip)</span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
