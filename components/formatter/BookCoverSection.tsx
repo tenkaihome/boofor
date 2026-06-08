@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { EditorContent, Editor } from "@tiptap/react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Upload, X, Loader2 } from "lucide-react";
 
 interface BookCoverSectionProps {
   title1: string;
@@ -13,6 +13,10 @@ interface BookCoverSectionProps {
   handleCopy: (text: string, id: string, isHtml?: boolean) => void;
   authorEditor: Editor | null;
   authorInfoMap: Record<string, string>;
+  bookCovers: Record<string, string>;
+  saveBookCover: (bookTitle: string, base64Data: string) => void;
+  deleteBookCover: (bookTitle: string) => void;
+  parsedBooks: Array<{ title1: string; title2: string; full: string }>;
 }
 
 export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
@@ -26,8 +30,107 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   handleCopy,
   authorEditor,
   authorInfoMap,
+  bookCovers,
+  saveBookCover,
+  deleteBookCover,
+  parsedBooks,
 }) => {
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
+
+  const handleBulkCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsBulkUploading(true);
+    const fileList = Array.from(files);
+    let matchedCount = 0;
+    const unmatchedNames: string[] = [];
+
+    const getCleanMatchKey = (str: string) => {
+      const noLeadingNumbers = str.replace(/^\d+[\s\.\-_]*/, "");
+      return noLeadingNumbers.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase();
+    };
+
+    const promises = fileList.map((file) => {
+      return new Promise<void>((resolve) => {
+        const filename = file.name;
+        const lastDotIdx = filename.lastIndexOf(".");
+        const nameWithoutExt = lastDotIdx !== -1 ? filename.substring(0, lastDotIdx) : filename;
+        const fileMatchKey = getCleanMatchKey(nameWithoutExt);
+
+        const matchedBook = parsedBooks.find((book) => {
+          const bookMatchKey = getCleanMatchKey(book.title1);
+          return bookMatchKey === fileMatchKey || book.title1.trim().toLowerCase() === nameWithoutExt.trim().toLowerCase();
+        });
+
+        if (!matchedBook) {
+          unmatchedNames.push(filename);
+          resolve();
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 600;
+            const MAX_HEIGHT = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+              saveBookCover(matchedBook.title1, compressedBase64);
+              matchedCount++;
+            }
+            resolve();
+          };
+          img.onerror = () => {
+            unmatchedNames.push(`${filename} (Không đọc được ảnh)`);
+            resolve();
+          };
+          img.src = evt.target?.result as string;
+        };
+        reader.onerror = () => {
+          unmatchedNames.push(`${filename} (Không đọc được file)`);
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    await Promise.all(promises);
+    setIsBulkUploading(false);
+
+    let message = `Đã xử lý xong hàng loạt ảnh bìa:\n- Khớp thành công: ${matchedCount} sách`;
+    if (unmatchedNames.length > 0) {
+      message += `\n- Không khớp được ${unmatchedNames.length} ảnh:\n  + ` + unmatchedNames.slice(0, 10).join("\n  + ");
+      if (unmatchedNames.length > 10) {
+        message += `\n  + và ${unmatchedNames.length - 10} ảnh khác...`;
+      }
+    }
+    alert(message);
+    e.target.value = "";
+  };
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
@@ -135,6 +238,112 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
         >
           <EditorContent editor={authorEditor} />
         </div>
+      </div>
+
+      {/* Ảnh bìa Sách */}
+      <div className="pt-4 border-t border-gray-100 mt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800">Ảnh bìa Sách</h3>
+          <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-indigo-100 ${isBulkUploading ? "opacity-50 pointer-events-none" : ""}`}>
+            {isBulkUploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Upload className="w-3.5 h-3.5" />
+            )}
+            {isBulkUploading ? "Đang xử lý..." : "Khớp ảnh hàng loạt"}
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              disabled={isBulkUploading}
+              onChange={handleBulkCoverUpload}
+            />
+          </label>
+        </div>
+        {!title1 ? (
+          <p className="text-xs text-red-500">
+            Vui lòng chọn hoặc nhập tên sách để tải lên ảnh bìa.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {bookCovers[title1] ? (
+              <div className="relative w-full max-w-[200px] aspect-[3/4] rounded-xl overflow-hidden border border-gray-200 group shadow-sm bg-gray-50">
+                <img
+                  src={bookCovers[title1]}
+                  alt="Cover Preview"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => deleteBookCover(title1)}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors cursor-pointer"
+                  title="Xóa ảnh bìa"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full aspect-[5/2] border-2 border-dashed border-gray-250 hover:border-indigo-400 rounded-xl cursor-pointer hover:bg-indigo-50/10 transition-colors py-4">
+                <div className="flex flex-col items-center justify-center text-center px-4">
+                  <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-semibold text-gray-600">
+                    Tải lên ảnh bìa (JPG, PNG, WEBP)
+                  </span>
+                  <span className="text-[10px] text-indigo-500 font-medium mt-0.5 animate-pulse">
+                    Tự động tối ưu dung lượng ảnh
+                  </span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const MAX_WIDTH = 600;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                          if (width > MAX_WIDTH) {
+                            height = Math.round((height * MAX_WIDTH) / width);
+                            width = MAX_WIDTH;
+                          }
+                        } else {
+                          if (height > MAX_HEIGHT) {
+                            width = Math.round((width * MAX_HEIGHT) / height);
+                            height = MAX_HEIGHT;
+                          }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext("2d");
+                        if (ctx) {
+                          ctx.drawImage(img, 0, 0, width, height);
+                          // Compress to JPEG with 0.8 quality
+                          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+                          saveBookCover(title1, compressedBase64);
+                        }
+                      };
+                      img.src = evt.target?.result as string;
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

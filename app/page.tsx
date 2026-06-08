@@ -225,6 +225,13 @@ export default function Home() {
                 authorInfoMap={state.authorInfoMap}
                 genresText={state.genresText}
                 setGenresText={state.setGenresText}
+                bookContentMap={state.bookContentMap}
+                bookCovers={state.bookCovers}
+                saveBookCover={state.saveBookCover}
+                deleteBookCover={state.deleteBookCover}
+                isBatchExporting={state.isBatchExporting}
+                batchProgress={state.batchProgress}
+                triggerBatchExportEPUB={state.triggerBatchExportEPUB}
               />
             )}
 
@@ -234,10 +241,19 @@ export default function Home() {
                 setPromptTemplate={state.setPromptTemplate}
                 promptPlaceholderBook={state.promptPlaceholderBook}
                 setPromptPlaceholderBook={state.setPromptPlaceholderBook}
+                promptPlaceholderAuthor={state.promptPlaceholderAuthor}
+                setPromptPlaceholderAuthor={state.setPromptPlaceholderAuthor}
+                coverPromptTemplate={state.coverPromptTemplate}
+                setCoverPromptTemplate={state.setCoverPromptTemplate}
+                coverPromptPlaceholderBook={state.coverPromptPlaceholderBook}
+                setCoverPromptPlaceholderBook={state.setCoverPromptPlaceholderBook}
+                coverPromptPlaceholderAuthor={state.coverPromptPlaceholderAuthor}
+                setCoverPromptPlaceholderAuthor={state.setCoverPromptPlaceholderAuthor}
                 parsedBooks={state.parsedBooks}
                 handleSelectBook={state.handleSelectBook}
                 title1={state.title1}
                 title2={state.title2}
+                author={state.author}
                 copiedId={state.copiedId}
                 handleCopy={state.handleCopy}
                 editor={state.editor}

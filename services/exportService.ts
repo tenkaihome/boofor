@@ -131,7 +131,8 @@ export const exportToEPUB = async (
   processedHtml: string,
   title1: string,
   title2: string,
-  author: string
+  author: string,
+  coverBase64?: string
 ): Promise<void> => {
   if (!processedHtml) return;
 
@@ -142,11 +143,17 @@ export const exportToEPUB = async (
   const response = await fetch("/api/export-epub", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ html: processedHtml, title: fullTitle, author }),
+    body: JSON.stringify({
+      html: processedHtml,
+      title: fullTitle,
+      author,
+      cover: coverBase64,
+    }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to export EPUB document");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to export EPUB document");
   }
 
   const blob = await response.blob();

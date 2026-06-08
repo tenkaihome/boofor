@@ -72,7 +72,7 @@ function splitHtmlIntoChapters(html: string): any[] {
 
 export async function POST(req: Request) {
   try {
-    const { html, title, author } = await req.json();
+    const { html, title, author, cover } = await req.json();
 
     if (!html) {
       return NextResponse.json({ error: "Missing HTML content" }, { status: 400 });
@@ -84,12 +84,51 @@ export async function POST(req: Request) {
     // Split the HTML into structured chapters based on <h1> elements
     const chapters = splitHtmlIntoChapters(html);
 
+    let coverOption = undefined;
+    if (cover && typeof cover === "string" && cover.startsWith("data:")) {
+      const match = cover.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        const contentType = match[1];
+        const base64Data = match[2];
+        const buffer = Buffer.from(base64Data, "base64");
+
+        let ext = "jpg";
+        if (contentType.includes("png")) ext = "png";
+        else if (contentType.includes("gif")) ext = "gif";
+        else if (contentType.includes("webp")) ext = "webp";
+
+        if (typeof File !== "undefined") {
+          coverOption = new File([buffer], `cover.${ext}`, { type: contentType }) as any;
+        } else {
+          const { File: NodeFile } = require("buffer");
+          if (NodeFile) {
+            coverOption = new NodeFile([buffer], `cover.${ext}`, { type: contentType }) as any;
+          } else {
+            coverOption = {
+              name: `cover.${ext}`,
+              arrayBuffer: () => buffer,
+            } as any;
+          }
+        }
+
+        // Prepend cover image as a first page inside the EPUB contents flow using SVG
+        // to bypass epub-gen-memory's relative URL download error.
+        chapters.unshift({
+          title: "Cover",
+          content: `<div style="text-align: center; page-break-after: always; margin: 0; padding: 0; width: 100%; height: 100%;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;"><image width="600" height="800" href="cover.${ext}" /></svg></div>`,
+          excludeFromToc: true,
+          beforeToc: true,
+        });
+      }
+    }
+
     const option = {
       title: bookTitle,
       author: bookAuthor,
+      cover: coverOption,
     };
 
-    const epubBuffer = await epub(option, chapters);
+    const epubBuffer = await epub(option as any, chapters);
 
     return new Response(epubBuffer as any, {
       status: 200,
@@ -98,8 +137,8 @@ export async function POST(req: Request) {
         "Content-Disposition": `attachment; filename="${encodeURIComponent(bookTitle)}.epub"`,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Export EPUB Error:", error);
-    return NextResponse.json({ error: "Failed to generate EPUB document" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || String(error) }, { status: 500 });
   }
 }
