@@ -191,9 +191,11 @@ export default function Home() {
                 isFormatting={state.isFormatting}
                 isExporting={state.isExporting}
                 isExportingPDF={state.isExportingPDF}
+                isExportingEPUB={state.isExportingEPUB}
                 formatContent={state.formatContent}
                 triggerExportWord={state.triggerExportWord}
                 triggerExportPDF={state.triggerExportPDF}
+                triggerExportEPUB={state.triggerExportEPUB}
                 detectedChapters={state.detectedChapters}
                 setButtonPos={state.setButtonPos}
                 setIsChapterListOpen={state.setIsChapterListOpen}
@@ -280,6 +282,10 @@ export default function Home() {
         title="Các mục đã nhận diện"
         detectedChapters={state.detectedChapters}
         buttonPos={state.buttonPos}
+        editorHtml={state.editor ? state.editor.getHTML() : ""}
+        title1={state.title1}
+        title2={state.title2}
+        author={state.author}
       />
     </div>
   );

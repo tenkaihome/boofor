@@ -1,15 +1,17 @@
 import React from "react";
 import { EditorContent, Editor } from "@tiptap/react";
-import { FileText, Wand2, Loader2, List, Save } from "lucide-react";
+import { FileText, Wand2, Loader2, List, Save, Book } from "lucide-react";
 
 interface EditorSectionProps {
   editor: Editor | null;
   isFormatting: boolean;
   isExporting: boolean;
   isExportingPDF: boolean;
+  isExportingEPUB: boolean;
   formatContent: () => void;
   triggerExportWord: () => void;
   triggerExportPDF: () => void;
+  triggerExportEPUB: () => void;
   detectedChapters: string[];
   setButtonPos: (pos: { x: number; y: number }) => void;
   setIsChapterListOpen: (open: boolean) => void;
@@ -21,9 +23,11 @@ export const EditorSection: React.FC<EditorSectionProps> = ({
   isFormatting,
   isExporting,
   isExportingPDF,
+  isExportingEPUB,
   formatContent,
   triggerExportWord,
   triggerExportPDF,
+  triggerExportEPUB,
   detectedChapters,
   setButtonPos,
   setIsChapterListOpen,
@@ -90,6 +94,18 @@ export const EditorSection: React.FC<EditorSectionProps> = ({
               <FileText className="w-4 h-4" />
             )}
             Xuất File PDF
+          </button>
+          <button
+            onClick={triggerExportEPUB}
+            disabled={isExportingEPUB}
+            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-70 cursor-pointer"
+          >
+            {isExportingEPUB ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Book className="w-4 h-4" />
+            )}
+            Xuất File EPUB
           </button>
         </div>
       </div>

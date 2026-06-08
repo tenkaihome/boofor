@@ -123,3 +123,41 @@ export const exportToPDF = async (
   `);
   printWindow.document.close();
 };
+
+/**
+ * Sends processed HTML and metadata to the backend EPUB service and downloads the EPUB file.
+ */
+export const exportToEPUB = async (
+  processedHtml: string,
+  title1: string,
+  title2: string,
+  author: string
+): Promise<void> => {
+  if (!processedHtml) return;
+
+  const fullTitle = title1
+    ? `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim()
+    : "Book_Exported";
+
+  const response = await fetch("/api/export-epub", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html: processedHtml, title: fullTitle, author }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to export EPUB document");
+  }
+
+  const blob = await response.blob();
+
+  // Automatically copy full title to clipboard
+  try {
+    await navigator.clipboard.writeText(fullTitle);
+  } catch (err) {
+    console.error("Failed to copy title to clipboard:", err);
+  }
+
+  saveAs(blob, `${fullTitle}.epub`);
+};
+

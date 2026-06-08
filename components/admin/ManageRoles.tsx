@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { RefreshCw, X, Shield, ShieldCheck, UserCheck, AlertTriangle } from "lucide-react";
+import { RefreshCw, X, Shield, ShieldCheck, UserCheck, AlertTriangle, ChevronDown } from "lucide-react";
 
 interface UserAccount {
   username: string;
@@ -17,6 +17,19 @@ export const ManageRoles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [activeDropdownUser, setActiveDropdownUser] = useState<string | null>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".role-dropdown-container")) {
+        setActiveDropdownUser(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -113,6 +126,9 @@ export const ManageRoles: React.FC = () => {
   const verifiedUsers = users.filter((u) => u.role === "user");
   const guests = users.filter((u) => u.role === "guest");
 
+  const currentUser = users.find((u) => u.isCurrent);
+  const isSuperAdmin = currentUser?.username === "liam";
+
   // Helper to generate a background color for avatars based on username
   const getAvatarBg = (username: string) => {
     const colors = [
@@ -190,38 +206,92 @@ export const ManageRoles: React.FC = () => {
               </span>
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100">
+            <div className="border border-gray-100 rounded-xl divide-y divide-gray-100 overflow-visible">
               {admins.length === 0 ? (
                 <p className="p-4 text-gray-400 text-sm text-center">Không có quản trị viên nào</p>
               ) : (
-                admins.map((user) => (
-                  <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      {/* Avatar */}
-                      <div className={`w-9 h-9 rounded-full ${getAvatarBg(user.username)} flex items-center justify-center text-sm font-bold text-white shadow-inner uppercase`}>
-                        {user.username.charAt(0)}
-                      </div>
-
-                      {/* Info */}
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-gray-800 dark:text-slate-200 text-sm">{user.username}</span>
-                          <span className={`w-2 h-2 rounded-full ${user.isOnline ? "bg-emerald-500" : "bg-gray-300"}`} />
+                admins.map((user, idx) => {
+                  const isLast = idx === admins.length - 1 && admins.length >= 2;
+                  return (
+                    <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors first:rounded-t-xl last:rounded-b-xl">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className={`w-9 h-9 rounded-full ${getAvatarBg(user.username)} flex items-center justify-center text-sm font-bold text-white shadow-inner uppercase`}>
+                          {user.username.charAt(0)}
                         </div>
-                        {user.isCurrent && (
-                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold tracking-widest block mt-0.5">
-                            YOUR ACCOUNT
-                          </span>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Action */}
-                    <div className="text-gray-500 dark:text-slate-400 font-semibold text-xs px-2.5 py-1 rounded bg-gray-100 dark:bg-[#0d1117] border border-gray-250">
-                      Admin
+                        {/* Info */}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-gray-800 dark:text-slate-200 text-sm">{user.username}</span>
+                            <span className={`w-2 h-2 rounded-full ${user.isOnline ? "bg-emerald-500" : "bg-gray-300"}`} />
+                          </div>
+                          {user.isCurrent && (
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold tracking-widest block mt-0.5">
+                              YOUR ACCOUNT
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action: Only allow role change/delete if current user is liam and target is not liam */}
+                      {isSuperAdmin && user.username !== "liam" ? (
+                        <div className="flex items-center gap-2 role-dropdown-container">
+                          <div className="relative">
+                            <button
+                              type="button"
+                              disabled={actionLoading === user.username}
+                              onClick={() => setActiveDropdownUser(activeDropdownUser === user.username ? null : user.username)}
+                              className="w-24 pl-2.5 pr-7 py-1.5 bg-white dark:bg-[#0d1117]/20 border border-gray-200 dark:border-[#30363d] text-gray-800 dark:text-slate-200 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold cursor-pointer shadow-sm text-left flex items-center justify-between transition-all duration-200"
+                            >
+                              <span className="capitalize">{user.role}</span>
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 text-gray-400 dark:text-slate-500 transition-transform duration-200 ${
+                                  activeDropdownUser === user.username ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
+
+                            {activeDropdownUser === user.username && (
+                              <div className={`absolute right-0 z-50 w-24 ${isLast ? "bottom-full mb-1" : "top-full mt-1"} bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg shadow-lg py-1 divide-y divide-gray-50 dark:divide-slate-800 animate-fadeIn`}>
+                                {["admin", "user", "guest"].map((role) => (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    onClick={() => {
+                                      handleRoleChange(user.username, role);
+                                      setActiveDropdownUser(null);
+                                    }}
+                                    className={`w-full px-2.5 py-1.5 text-xs text-left cursor-pointer transition-colors capitalize ${
+                                      user.role === role
+                                        ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                                        : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                                    }`}
+                                  >
+                                    {role}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteUser(user.username)}
+                            disabled={actionLoading === user.username}
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 border border-transparent hover:border-red-200 dark:hover:border-red-900/50 rounded-lg text-red-500 hover:text-red-400 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+                            title="Xóa tài khoản"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 dark:text-slate-400 font-semibold text-xs px-2.5 py-1 rounded bg-gray-100 dark:bg-[#0d1117] border border-gray-250">
+                          Admin
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -238,12 +308,14 @@ export const ManageRoles: React.FC = () => {
               </span>
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100">
+            <div className="border border-gray-100 rounded-xl divide-y divide-gray-100 overflow-visible">
               {verifiedUsers.length === 0 ? (
                 <p className="p-4 text-gray-400 text-sm text-center">Không có tài khoản người dùng</p>
               ) : (
-                verifiedUsers.map((user) => (
-                  <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors">
+                verifiedUsers.map((user, idx) => {
+                  const isLast = idx === verifiedUsers.length - 1 && verifiedUsers.length >= 2;
+                  return (
+                    <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors first:rounded-t-xl last:rounded-b-xl">
                     <div className="flex items-center gap-3">
                       {/* Avatar */}
                       <div className={`w-9 h-9 rounded-full ${getAvatarBg(user.username)} flex items-center justify-center text-sm font-bold text-white shadow-inner uppercase`}>
@@ -260,17 +332,46 @@ export const ManageRoles: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={user.role}
-                        disabled={actionLoading === user.username}
-                        onChange={(e) => handleRoleChange(user.username, e.target.value)}
-                        className="bg-gray-50 dark:bg-[#0d1117] border border-gray-250 text-gray-800 dark:text-slate-350 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="guest">Guest</option>
-                      </select>
+                    <div className="flex items-center gap-2 role-dropdown-container">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          disabled={actionLoading === user.username}
+                          onClick={() => setActiveDropdownUser(activeDropdownUser === user.username ? null : user.username)}
+                          className="w-24 pl-2.5 pr-7 py-1.5 bg-white dark:bg-[#0d1117]/20 border border-gray-200 dark:border-[#30363d] text-gray-800 dark:text-slate-200 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold cursor-pointer shadow-sm text-left flex items-center justify-between transition-all duration-200"
+                        >
+                          <span className="capitalize">{user.role}</span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-gray-400 dark:text-slate-500 transition-transform duration-200 ${
+                              activeDropdownUser === user.username ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        {activeDropdownUser === user.username && (
+                          <div className={`absolute right-0 z-50 w-24 ${isLast ? "bottom-full mb-1" : "top-full mt-1"} bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg shadow-lg py-1 divide-y divide-gray-50 dark:divide-slate-800 animate-fadeIn`}>
+                            {["admin", "user", "guest"]
+                              .filter((role) => role !== "admin" || isSuperAdmin)
+                              .map((role) => (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    handleRoleChange(user.username, role);
+                                    setActiveDropdownUser(null);
+                                  }}
+                                  className={`w-full px-2.5 py-1.5 text-xs text-left cursor-pointer transition-colors capitalize ${
+                                    user.role === role
+                                      ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                                      : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                                  }`}
+                                >
+                                  {role}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => handleDeleteUser(user.username)}
@@ -282,7 +383,7 @@ export const ManageRoles: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ))
+                );})
               )}
             </div>
           </div>
@@ -299,12 +400,14 @@ export const ManageRoles: React.FC = () => {
               </span>
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100">
+            <div className="border border-gray-100 rounded-xl divide-y divide-gray-100 overflow-visible">
               {guests.length === 0 ? (
                 <p className="p-4 text-gray-400 text-sm text-center">Không có tài khoản đang chờ duyệt</p>
               ) : (
-                guests.map((user) => (
-                  <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors">
+                guests.map((user, idx) => {
+                  const isLast = idx === guests.length - 1 && guests.length >= 2;
+                  return (
+                    <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-[#0d1117]/50 transition-colors first:rounded-t-xl last:rounded-b-xl">
                     <div className="flex items-center gap-3">
                       {/* Avatar */}
                       <div className={`w-9 h-9 rounded-full ${getAvatarBg(user.username)} flex items-center justify-center text-sm font-bold text-white shadow-inner uppercase`}>
@@ -321,17 +424,46 @@ export const ManageRoles: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={user.role}
-                        disabled={actionLoading === user.username}
-                        onChange={(e) => handleRoleChange(user.username, e.target.value)}
-                        className="bg-gray-50 dark:bg-[#0d1117] border border-gray-250 text-gray-800 dark:text-slate-350 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="guest">Guest</option>
-                      </select>
+                    <div className="flex items-center gap-2 role-dropdown-container">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          disabled={actionLoading === user.username}
+                          onClick={() => setActiveDropdownUser(activeDropdownUser === user.username ? null : user.username)}
+                          className="w-24 pl-2.5 pr-7 py-1.5 bg-white dark:bg-[#0d1117]/20 border border-gray-200 dark:border-[#30363d] text-gray-800 dark:text-slate-200 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold cursor-pointer shadow-sm text-left flex items-center justify-between transition-all duration-200"
+                        >
+                          <span className="capitalize">{user.role}</span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-gray-400 dark:text-slate-500 transition-transform duration-200 ${
+                              activeDropdownUser === user.username ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        {activeDropdownUser === user.username && (
+                          <div className={`absolute right-0 z-50 w-24 ${isLast ? "bottom-full mb-1" : "top-full mt-1"} bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg shadow-lg py-1 divide-y divide-gray-50 dark:divide-slate-800 animate-fadeIn`}>
+                            {["admin", "user", "guest"]
+                              .filter((role) => role !== "admin" || isSuperAdmin)
+                              .map((role) => (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    handleRoleChange(user.username, role);
+                                    setActiveDropdownUser(null);
+                                  }}
+                                  className={`w-full px-2.5 py-1.5 text-xs text-left cursor-pointer transition-colors capitalize ${
+                                    user.role === role
+                                      ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
+                                      : "text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                                  }`}
+                                >
+                                  {role}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => handleDeleteUser(user.username)}
@@ -343,7 +475,7 @@ export const ManageRoles: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ))
+                );})
               )}
             </div>
           </div>

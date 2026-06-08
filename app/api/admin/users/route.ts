@@ -96,7 +96,7 @@ export async function GET(req: Request) {
 
 // 2. PUT: Update user role
 export async function PUT(req: Request) {
-  const { isAdmin } = await verifyAdmin(req);
+  const { isAdmin, requesterUsername } = await verifyAdmin(req);
   if (!isAdmin) {
     return NextResponse.json({ error: "Bạn không có quyền truy cập chức năng này" }, { status: 403 });
   }
@@ -121,9 +121,9 @@ export async function PUT(req: Request) {
 
     const targetUser = snapshot.val();
 
-    // CRITICAL: Admins are not allowed to change each other's roles/permissions
-    if (targetUser.role === "admin") {
-      return NextResponse.json({ error: "Các tài khoản admin không được phép sửa quyền của nhau" }, { status: 403 });
+    // CRITICAL: Only super admin 'liam' can change admin roles or promote users to admin or modify 'liam' itself
+    if ((targetUser.role === "admin" || targetUsername === "liam" || newRole === "admin") && requesterUsername !== "liam") {
+      return NextResponse.json({ error: "Chỉ Super Admin (liam) mới có quyền tạo hoặc thay đổi tài khoản admin" }, { status: 403 });
     }
 
     // Update role
@@ -138,7 +138,7 @@ export async function PUT(req: Request) {
 
 // 3. DELETE: Remove user account
 export async function DELETE(req: Request) {
-  const { isAdmin } = await verifyAdmin(req);
+  const { isAdmin, requesterUsername } = await verifyAdmin(req);
   if (!isAdmin) {
     return NextResponse.json({ error: "Bạn không có quyền truy cập chức năng này" }, { status: 403 });
   }
@@ -159,9 +159,9 @@ export async function DELETE(req: Request) {
 
     const targetUser = snapshot.val();
 
-    // CRITICAL: Admins are not allowed to delete each other
-    if (targetUser.role === "admin") {
-      return NextResponse.json({ error: "Các tài khoản admin không được phép xóa nhau" }, { status: 403 });
+    // CRITICAL: Only super admin 'liam' can delete admin accounts or delete 'liam' itself
+    if ((targetUser.role === "admin" || targetUsername === "liam") && requesterUsername !== "liam") {
+      return NextResponse.json({ error: "Chỉ Super Admin (liam) mới có quyền xóa tài khoản admin" }, { status: 403 });
     }
 
     // Delete user

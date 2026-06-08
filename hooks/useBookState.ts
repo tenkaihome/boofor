@@ -11,7 +11,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { Markdown } from "tiptap-markdown";
 import { copyToClipboard } from "@/utils/clipboard";
 import { cleanAndFormatHtml, getProcessedHtml } from "@/utils/formatter";
-import { exportToWord, exportToPDF } from "@/services/exportService";
+import { exportToWord, exportToPDF, exportToEPUB } from "@/services/exportService";
 import { dbGet, dbSet } from "@/utils/db";
 
 export interface AuthorTab {
@@ -51,6 +51,7 @@ export const useBookState = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingEPUB, setIsExportingEPUB] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
 
   // Tab State
@@ -295,7 +296,7 @@ export const useBookState = () => {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[60vh] max-h-[70vh] overflow-y-auto p-8 border rounded-md shadow-inner bg-white dark:bg-[#161b22] dark:text-white dark:border-slate-700 font-serif dark:prose-invert",
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[60vh] max-h-[70vh] overflow-y-auto p-8 border rounded-md shadow-inner bg-white dark:bg-[#161b22] dark:border-slate-700 font-serif dark:prose-invert",
       },
     },
   });
@@ -834,10 +835,26 @@ export const useBookState = () => {
     }
   };
 
+  // EPUB export triggers
+  const triggerExportEPUB = async () => {
+    if (!editor) return;
+    setIsExportingEPUB(true);
+    try {
+      const processedHtml = getProcessedHtml(editor.getHTML(), title1, title2, author);
+      await exportToEPUB(processedHtml, title1, title2, author);
+    } catch (err) {
+      console.error(err);
+      alert("Đã có lỗi xảy ra khi xuất file EPUB.");
+    } finally {
+      setIsExportingEPUB(false);
+    }
+  };
+
   return {
     isMounted,
     isExporting,
     isExportingPDF,
+    isExportingEPUB,
     isFormatting,
     title1,
     setTitle1,
@@ -890,6 +907,7 @@ export const useBookState = () => {
     formatContent,
     triggerExportWord,
     triggerExportPDF,
+    triggerExportEPUB,
     authorInfoMap,
     // Multi-tab workspace features
     tabs,
