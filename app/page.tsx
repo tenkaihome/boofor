@@ -232,6 +232,7 @@ export default function Home() {
                 isBatchExporting={state.isBatchExporting}
                 batchProgress={state.batchProgress}
                 triggerBatchExportEPUB={state.triggerBatchExportEPUB}
+                reconcilerRawText={state.reconcilerRawText}
               />
             )}
 

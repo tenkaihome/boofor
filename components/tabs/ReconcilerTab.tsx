@@ -42,10 +42,38 @@ export const ReconcilerTab: React.FC<ReconcilerTabProps> = ({
     return compareBooks(warehouseBooks, parsedBooks);
   }, [warehouseBooks, parsedBooks]);
 
+  // Sort parsed books based on their occurrence order in warehouse catalog
+  const orderedParsedBooks = useMemo(() => {
+    if (warehouseBooks.length === 0) return parsedBooks;
+
+    const normalizeStringForSort = (str: string) => {
+      return str
+        .toLowerCase()
+        .replace(/[.,\-\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const warehouseNormalized = warehouseBooks.map(b => normalizeStringForSort(b));
+
+    return [...parsedBooks].sort((a, b) => {
+      const normA = normalizeStringForSort(a.title);
+      const normB = normalizeStringForSort(b.title);
+
+      const idxA = warehouseNormalized.findIndex(w => normA === w || normA.includes(w) || w.includes(normA));
+      const idxB = warehouseNormalized.findIndex(w => normB === w || normB.includes(w) || w.includes(normB));
+
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return 0;
+    });
+  }, [parsedBooks, warehouseBooks]);
+
   // Convert parsed books into TSV format for Google Sheets copy-paste
   const sheetsPasteString = useMemo(() => {
-    return parsedBooks.map(book => `${book.title}\t${book.price}`).join("\n");
-  }, [parsedBooks]);
+    return orderedParsedBooks.map(book => `${book.title}\t${book.price}`).join("\n");
+  }, [orderedParsedBooks]);
 
   const handleCopyResults = () => {
     if (!sheetsPasteString) return;
@@ -112,7 +140,7 @@ export const ReconcilerTab: React.FC<ReconcilerTabProps> = ({
       {/* 3. Parsed Output Preview Table (only visible if books are successfully parsed) */}
       {parsedBooks.length > 0 ? (
         <ReconcilerPreviewSection
-          parsedBooks={parsedBooks}
+          parsedBooks={orderedParsedBooks}
           copied={copied}
           onCopyResults={handleCopyResults}
         />
