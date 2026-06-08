@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Editor } from "@tiptap/react";
 import { EditorSection } from "../formatter/EditorSection";
 import { IntroExtractorSection } from "../formatter/IntroExtractorSection";
@@ -7,6 +7,7 @@ import { BookListSection } from "../formatter/BookListSection";
 import { BookCoverSection } from "../formatter/BookCoverSection";
 import { GenresSection } from "../formatter/GenresSection";
 import { Copy, X, ChevronDown } from "lucide-react";
+import { parsePlayBooksText } from "@/utils/reconciler";
 
 interface Book {
   title1: string;
@@ -60,6 +61,7 @@ interface FormatterTabProps {
   isBatchExporting: boolean;
   batchProgress: string;
   triggerBatchExportEPUB: (selectedTitles: string[]) => Promise<void>;
+  reconcilerRawText?: string;
 }
 
 export const FormatterTab: React.FC<FormatterTabProps> = ({
@@ -108,6 +110,7 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
   isBatchExporting,
   batchProgress,
   triggerBatchExportEPUB,
+  reconcilerRawText,
 }) => {
   const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -159,6 +162,23 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
 
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
   const authorInfoHTML = authorEditor ? authorEditor.getHTML() : (authorInfoMap[author] || "");
+
+  const bookPrice = useMemo(() => {
+    if (!reconcilerRawText || !title1) return null;
+    const parsed = parsePlayBooksText(reconcilerRawText);
+
+    const normalizeStringForMatch = (str: string) => {
+      const noLeadingNumbers = str.replace(/^\d+[\s\.\-_]*/, "");
+      return noLeadingNumbers.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase();
+    };
+
+    const targetKey = normalizeStringForMatch(title1);
+    const matchedBook = parsed.find(b => {
+      return normalizeStringForMatch(b.title) === targetKey || b.title.trim().toLowerCase() === title1.trim().toLowerCase();
+    });
+
+    return matchedBook ? matchedBook.price : null;
+  }, [reconcilerRawText, title1]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -386,6 +406,32 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
                   }`}
                 >
                   {fullTitle}
+                </div>
+              </div>
+
+              {/* Giá sách */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Giá Sách (Retail Price - Click để copy)
+                  </span>
+                  {copiedId === "modalPrice" && (
+                    <span className="text-xs font-semibold text-green-600 animate-pulse">
+                      Đã copy!
+                    </span>
+                  )}
+                </div>
+                <div
+                  onClick={() => bookPrice && handleCopy(bookPrice, "modalPrice")}
+                  className={`px-4 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+                    !bookPrice
+                      ? "border-gray-200 bg-gray-50/50 text-gray-400 italic cursor-not-allowed"
+                      : copiedId === "modalPrice"
+                      ? "border-green-500 bg-green-50/10 ring-2 ring-green-100 text-gray-900"
+                      : "border-gray-200 bg-gray-50 hover:bg-gray-100/30 hover:border-indigo-400 text-gray-900"
+                  }`}
+                >
+                  {bookPrice || "Không tìm thấy giá sách trong Catalog Reconciler"}
                 </div>
               </div>
 
