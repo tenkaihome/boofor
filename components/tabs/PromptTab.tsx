@@ -163,19 +163,24 @@ export const PromptTab: React.FC<PromptTabProps> = ({
                     .replaceAll(coverPromptPlaceholderBook, bookFullTitle)
                     .replaceAll(coverPromptPlaceholderAuthor, currentAuthorName);
 
-                  const isSelected = book.title1 === title1 && book.title2 === title2;
+                   const isSelected = book.title1 === title1 && book.title2 === title2;
                   
                   const contentCopyKey = `prompt-content-${idx}`;
-                  const coverCopyKey = `prompt-cover-${idx}`;
                   const isContentCopied = copiedId === contentCopyKey;
-                  const isCoverCopied = copiedId === coverCopyKey;
 
                   return (
                     <div
                       key={idx}
-                      onClick={() => selectBook(book.title1, book.title2)}
-                      className={`flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer relative group ${
-                        isSelected
+                      onClick={() => {
+                        selectBook(book.title1, book.title2);
+                        if (promptTemplate && promptPlaceholderBook) {
+                          handleCopy(bookPrompt, contentCopyKey);
+                        }
+                      }}
+                      className={`flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer relative group active:scale-[0.98] ${
+                        isContentCopied
+                          ? "border-green-500 bg-green-50/10 ring-2 ring-green-100 shadow-sm"
+                          : isSelected
                           ? "border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/10 shadow-sm"
                           : "border-gray-100 bg-gray-50/50 hover:bg-indigo-50/40 hover:border-indigo-300"
                       }`}
@@ -188,6 +193,12 @@ export const PromptTab: React.FC<PromptTabProps> = ({
                         }`}>
                           #{idx + 1}
                         </span>
+                        {isContentCopied && (
+                          <span className="text-[10px] font-bold text-green-600 flex items-center gap-0.5 animate-scale">
+                            <Check className="w-3.5 h-3.5" />
+                            Đã copy!
+                          </span>
+                        )}
                       </div>
 
                       {/* Book Title */}
@@ -195,56 +206,16 @@ export const PromptTab: React.FC<PromptTabProps> = ({
                         {bookFullTitle}
                       </h4>
 
-                      {/* Prompt Copy Buttons */}
-                      <div className="flex flex-col gap-1.5 mt-3 w-full">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectBook(book.title1, book.title2);
-                            if (promptTemplate && promptPlaceholderBook) {
-                              handleCopy(bookPrompt, contentCopyKey);
-                            }
-                          }}
-                          className="flex items-center justify-center gap-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10.5px] font-semibold rounded-lg transition-colors cursor-pointer w-full text-center border border-indigo-150"
-                        >
-                          {isContentCopied ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-green-600 animate-scale" />
-                              <span>Đã copy!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5 text-indigo-500" />
-                              <span>Copy Prompt Viết sách</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectBook(book.title1, book.title2);
-                            if (coverPromptTemplate && coverPromptPlaceholderBook) {
-                              handleCopy(bookCoverPrompt, coverCopyKey);
-                            }
-                          }}
-                          className="flex items-center justify-center gap-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10.5px] font-semibold rounded-lg transition-colors cursor-pointer w-full text-center border border-emerald-150"
-                        >
-                          {isCoverCopied ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-green-600 animate-scale" />
-                              <span>Đã copy!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>Copy Prompt Ảnh bìa</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      {/* Prompt Preview Text */}
+                      {bookPrompt ? (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 pt-2 border-t border-gray-100 dark:border-gray-200/40 line-clamp-2 italic break-words">
+                          {bookPrompt}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-gray-300 dark:text-gray-600 mt-2 pt-2 border-t border-gray-100 dark:border-gray-200/40 italic">
+                          Chưa có prompt mẫu...
+                        </p>
+                      )}
                     </div>
                   );
                 })}
