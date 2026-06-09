@@ -16,9 +16,12 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
   return (
     <div className="space-y-4">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-indigo-950 text-white p-5 rounded-2xl shadow-md transition-all">
+      <div 
+        style={{ backgroundColor: '#1e1b4b' }}
+        className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white p-5 rounded-2xl shadow-md transition-all"
+      >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[#ffffff]/10 rounded-xl">
+          <div className="p-2.5 bg-white/10 rounded-xl">
             <Sheet className="w-5 h-5 text-emerald-300" />
           </div>
           <div className="space-y-0.5">
@@ -31,9 +34,10 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
 
         <button
           onClick={onCopyResults}
-          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 ${copied
+          style={copied ? {} : { backgroundColor: '#ffffff', color: '#1e1b4b' }}
+          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 border border-gray-200 ${copied
             ? "bg-emerald-600 text-white hover:bg-emerald-700"
-            : "reconciler-copy-btn shadow-sm"
+            : "shadow-sm"
             }`}
         >
           {copied ? (
@@ -43,8 +47,8 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
             </>
           ) : (
             <>
-              <Copy className="w-4 h-4 text-indigo-700" />
-              <span>Sao chép kết quả (Bấm để copy)</span>
+              <Copy className="w-4 h-4" style={{ color: '#1e1b4b', stroke: '#1e1b4b' }} />
+              <span style={{ color: '#1e1b4b' }}>Sao chép kết quả (Bấm để copy)</span>
             </>
           )}
         </button>
