@@ -412,30 +412,30 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
               </div>
 
               {/* Giá sách */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Giá Sách (Retail Price - Click để copy)
-                  </span>
-                  {copiedId === "modalPrice" && (
-                    <span className="text-xs font-semibold text-green-600 animate-pulse">
-                      Đã copy!
+              {bookPrice && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Giá Sách (Retail Price - Click để copy)
                     </span>
-                  )}
+                    {copiedId === "modalPrice" && (
+                      <span className="text-xs font-semibold text-green-600 animate-pulse">
+                        Đã copy!
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    onClick={() => handleCopy(bookPrice, "modalPrice")}
+                    className={`px-4 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+                      copiedId === "modalPrice"
+                        ? "border-green-500 bg-green-50/10 ring-2 ring-green-100 text-gray-900"
+                        : "border-gray-200 bg-gray-50 hover:bg-gray-100/30 hover:border-indigo-400 text-gray-900"
+                    }`}
+                  >
+                    {bookPrice}
+                  </div>
                 </div>
-                <div
-                  onClick={() => bookPrice && handleCopy(bookPrice, "modalPrice")}
-                  className={`px-4 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
-                    !bookPrice
-                      ? "border-gray-200 bg-gray-50/50 text-gray-400 italic cursor-not-allowed"
-                      : copiedId === "modalPrice"
-                      ? "border-green-500 bg-green-50/10 ring-2 ring-green-100 text-gray-900"
-                      : "border-gray-200 bg-gray-50 hover:bg-gray-100/30 hover:border-indigo-400 text-gray-900"
-                  }`}
-                >
-                  {bookPrice || "Không tìm thấy giá sách trong Catalog Reconciler"}
-                </div>
-              </div>
+              )}
 
               {/* 2. Introduction */}
               <div className="space-y-1">
