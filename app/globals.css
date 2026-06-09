@@ -155,19 +155,19 @@ body {
   color: #ffffff !important;
 }
 
-/* Ensure inner elements and icons inherit the forced white color */
-.bg-indigo-600 *,
-.bg-indigo-700 *,
-.bg-blue-600 *,
-.bg-blue-700 *,
-.bg-red-600 *,
-.bg-red-700 *,
-.bg-violet-600 *,
-.bg-violet-700 *,
-.bg-emerald-600 *,
-.bg-emerald-700 *,
-.bg-indigo-950 *,
-.tab-button.bg-indigo-600.text-white * {
+/* Ensure inner elements and icons inherit the forced white color, excluding elements with bg-white background and their children */
+.bg-indigo-600 *:not(.bg-white):not(.bg-white *),
+.bg-indigo-700 *:not(.bg-white):not(.bg-white *),
+.bg-blue-600 *:not(.bg-white):not(.bg-white *),
+.bg-blue-700 *:not(.bg-white):not(.bg-white *),
+.bg-red-600 *:not(.bg-white):not(.bg-white *),
+.bg-red-700 *:not(.bg-white):not(.bg-white *),
+.bg-violet-600 *:not(.bg-white):not(.bg-white *),
+.bg-violet-700 *:not(.bg-white):not(.bg-white *),
+.bg-emerald-600 *:not(.bg-white):not(.bg-white *),
+.bg-emerald-700 *:not(.bg-white):not(.bg-white *),
+.bg-indigo-950 *:not(.bg-white):not(.bg-white *),
+.tab-button.bg-indigo-600.text-white *:not(.bg-white):not(.bg-white *) {
   color: inherit !important;
 }
 
@@ -188,6 +188,25 @@ body {
   color: inherit !important;
   stroke: currentColor !important;
 }
+
+/* Explicit style for the reconciler copy button, immune to all dark mode overrides */
+.reconciler-copy-btn {
+  background-color: #ffffff !important;
+  color: #1e1b4b !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.reconciler-copy-btn:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.reconciler-copy-btn *,
+.reconciler-copy-btn svg,
+.reconciler-copy-btn span {
+  color: #1e1b4b !important;
+  stroke: #1e1b4b !important;
+}
+
 
 
 

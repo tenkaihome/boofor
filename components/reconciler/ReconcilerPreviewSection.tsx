@@ -33,7 +33,7 @@ export const ReconcilerPreviewSection: React.FC<ReconcilerPreviewSectionProps> =
           onClick={onCopyResults}
           className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer select-none active:scale-95 duration-150 ${copied
             ? "bg-emerald-600 text-white hover:bg-emerald-700"
-            : "bg-[#ffffff] text-indigo-950 hover:bg-[#f3f4f6] shadow-sm"
+            : "reconciler-copy-btn shadow-sm"
             }`}
         >
           {copied ? (
