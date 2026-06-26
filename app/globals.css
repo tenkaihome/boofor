@@ -207,7 +207,12 @@ body {
   stroke: #1e1b4b !important;
 }
 
+/* Custom Active Author Tab styling for Dark Mode to ensure amber-500 color */
+.dark .author-tab-active {
+  color: #f59e0b !important;
+}
 
-
-
-
+.dark .author-tab-active svg {
+  color: #f59e0b !important;
+  stroke: #f59e0b !important;
+}
