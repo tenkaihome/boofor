@@ -69,13 +69,13 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
               onDoubleClick={(e) => handleStartRename(tab.id, displayName, e)}
               className={`group relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 cursor-pointer select-none border-t border-x ${
                 isTabActive
-                  ? "bg-white border-gray-200 text-indigo-600 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] translate-y-[1px] z-10 font-semibold"
+                  ? "author-tab-active bg-white border-gray-200 text-indigo-600 dark:text-amber-500 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] translate-y-[1px] z-10 font-semibold"
                   : "bg-gray-150/70 border-transparent text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 hover:translate-y-[-1px]"
               }`}
               style={{ minWidth: "140px", maxWidth: "220px" }}
             >
               {/* Tab Icon */}
-              <User className={`w-3.5 h-3.5 flex-shrink-0 ${isTabActive ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-500"}`} />
+              <User className={`w-3.5 h-3.5 flex-shrink-0 ${isTabActive ? "text-indigo-600 dark:text-amber-500" : "text-gray-400 group-hover:text-gray-500"}`} />
 
               {/* Editable Name Input or Text */}
               {editingId === tab.id ? (
