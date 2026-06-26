@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useBookState } from "@/hooks/useBookState";
 import { FormatterTab } from "@/components/tabs/FormatterTab";
 import { PromptTab } from "@/components/tabs/PromptTab";
@@ -8,15 +8,114 @@ import { SplitterTab } from "@/components/tabs/SplitterTab";
 import { ReconcilerTab } from "@/components/tabs/ReconcilerTab";
 import { Modal } from "@/components/common/Modal";
 import { AuthorTabs } from "@/components/common/AuthorTabs";
-import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock, Sun, Moon } from "lucide-react";
+import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock, Sun, Moon, Bell, Mail, Share2, Inbox, Check, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { ManageRoles } from "@/components/admin/ManageRoles";
+import { ShareModal } from "@/components/common/ShareModal";
 
 export default function Home() {
   const state = useBookState();
   const { user, isLoading, logout, theme, toggleTheme } = useAuth();
   const [activeMainTab, setActiveMainTab] = useState<"book" | "manage-roles">("book");
+  const [sharedAuthors, setSharedAuthors] = useState<any[]>([]);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [authorToShare, setAuthorToShare] = useState<any>(null);
+  const inboxRef = useRef<HTMLDivElement>(null);
+
+  const fetchSharedAuthors = useCallback(async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch("/api/shares", { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setSharedAuthors(data.shares || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch shared authors:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchSharedAuthors();
+      const interval = setInterval(fetchSharedAuthors, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, fetchSharedAuthors]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (inboxRef.current && !inboxRef.current.contains(target)) {
+        setIsInboxOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleOpenShareModal = (tab: any) => {
+    setAuthorToShare(tab);
+    setIsShareModalOpen(true);
+  };
+
+  const handleImportShare = async (share: any) => {
+    try {
+      state.importSharedAuthor({
+        authorName: share.authorName,
+        bookListText: share.bookListText,
+        bookIntroMap: share.bookIntroMap,
+        genresText: share.genresText,
+        chapterKeywords: share.chapterKeywords,
+        customBlockPhrases: share.customBlockPhrases,
+      });
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      await fetch("/api/shares", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ shareId: share.id }),
+      });
+
+      fetchSharedAuthors();
+      setIsInboxOpen(false);
+      alert(`Đã nhận thành công tác giả "${share.authorName}" vào Workspace của bạn.`);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Đã xảy ra lỗi khi nhận tác giả.");
+    }
+  };
+
+  const handleDeclineShare = async (share: any) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa lời chia sẻ tác giả "${share.authorName}" từ "${share.sender}"?`)) {
+      return;
+    }
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      await fetch("/api/shares", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ shareId: share.id }),
+      });
+
+      fetchSharedAuthors();
+    } catch (err) {
+      console.error("Decline error:", err);
+      alert("Đã xảy ra lỗi khi từ chối chia sẻ.");
+    }
+  };
 
   if (!state.isMounted || isLoading) {
     return (
@@ -108,6 +207,66 @@ export default function Home() {
               </div>
             )}
 
+            {/* Shared Authors Inbox */}
+            <div className="relative" ref={inboxRef}>
+              <button
+                onClick={() => setIsInboxOpen(!isInboxOpen)}
+                className="p-2 border border-gray-250 text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1f2937] transition-all cursor-pointer relative flex items-center justify-center"
+                title="Tác giả được chia sẻ"
+              >
+                <Bell className="w-4 h-4" />
+                {sharedAuthors.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                    {sharedAuthors.length}
+                  </span>
+                )}
+              </button>
+
+              {isInboxOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-72 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xl py-3 animate-fadeIn text-gray-900 dark:text-slate-100">
+                  <div className="px-4 pb-2 border-b border-gray-150 dark:border-slate-800 flex items-center gap-2">
+                    <Inbox className="w-4 h-4 text-indigo-500" />
+                    <span className="text-xs font-bold">Hộp thư nhận tác giả ({sharedAuthors.length})</span>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
+                    {sharedAuthors.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs text-gray-400 italic">
+                        Không có chia sẻ nào mới
+                      </div>
+                    ) : (
+                      sharedAuthors.map((share) => (
+                        <div key={share.id} className="p-3 space-y-2">
+                          <div className="text-left">
+                            <span className="text-xs font-bold block truncate" title={share.authorName}>
+                              {share.authorName}
+                            </span>
+                            <span className="text-[10px] text-gray-500 dark:text-slate-400">
+                              Chia sẻ bởi: <strong>{share.sender}</strong>
+                            </span>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => handleDeclineShare(share)}
+                              className="px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors cursor-pointer"
+                            >
+                              Từ chối
+                            </button>
+                            <button
+                              onClick={() => handleImportShare(share)}
+                              className="px-2 py-1 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <Check className="w-3 h-3" /> Nhận
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -138,6 +297,7 @@ export default function Home() {
               onAddTab={state.addTab}
               onDeleteTab={state.deleteTab}
               onRenameTab={state.renameTab}
+              onShareTab={handleOpenShareModal}
             />
 
             {/* Tab Navigation */}
@@ -303,6 +463,14 @@ export default function Home() {
         title1={state.title1}
         title2={state.title2}
         author={state.author}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        authorTab={authorToShare}
+        currentUsername={user.username}
       />
     </div>
   );

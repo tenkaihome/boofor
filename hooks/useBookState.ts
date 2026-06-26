@@ -984,6 +984,123 @@ export const useBookState = () => {
     }
   };
 
+  const importSharedAuthor = (sharedData: {
+    authorName: string;
+    bookListText?: string;
+    bookIntroMap?: Record<string, string>;
+    genresText?: string;
+    chapterKeywords?: string;
+    customBlockPhrases?: string;
+  }) => {
+    isSwitchingTabRef.current = true;
+
+    const newId = `tab_${Date.now()}`;
+    const bookList = sharedData.bookListText || "";
+    const parsed = bookList
+      ? bookList
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .map((line) => {
+            const cleanTitle = line.replace(/^\d+\.\s*/, "");
+            return { title1: cleanTitle, title2: "" };
+          })
+      : [];
+
+    const firstBookTitle1 = parsed[0]?.title1 || "";
+    const firstBookIntro = firstBookTitle1 ? (sharedData.bookIntroMap?.[firstBookTitle1] || "") : "";
+
+    const newTab: AuthorTab = {
+      id: newId,
+      title1: firstBookTitle1,
+      title2: "",
+      author: sharedData.authorName,
+      bookListText: bookList,
+      introductionText: firstBookIntro,
+      chapterKeywords: sharedData.chapterKeywords || "chapter, lesson",
+      genresText: sharedData.genresText || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks",
+      customBlockPhrases: sharedData.customBlockPhrases || "",
+      splitterInput: "",
+      reconcilerRawText: "",
+      reconcilerWarehouseText: "",
+      isSettingsOpen: true,
+      isBookListOpen: true,
+      isPromptOpen: true,
+      detectedChapters: [],
+      editorContent: "",
+      authorEditorContent: "",
+      bookIntroMap: sharedData.bookIntroMap || {},
+      bookContentMap: {},
+      activeSubTab: "formatter",
+    };
+
+    const currentEditorContent = editor ? editor.getHTML() : "";
+    const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
+
+    setTabs((prevTabs) => {
+      const updated = prevTabs.map((t) => {
+        if (t.id === activeTabId) {
+          return {
+            ...t,
+            title1,
+            title2,
+            author,
+            bookListText,
+            introductionText,
+            chapterKeywords,
+            genresText,
+            customBlockPhrases,
+            splitterInput,
+            reconcilerRawText,
+            reconcilerWarehouseText,
+            isSettingsOpen,
+            isBookListOpen,
+            detectedChapters,
+            bookIntroMap,
+            bookContentMap,
+            activeSubTab: activeTab,
+            editorContent: currentEditorContent,
+            authorEditorContent: currentAuthorEditorContent,
+          };
+        }
+        return t;
+      });
+      return [...updated, newTab];
+    });
+
+    setTitle1(firstBookTitle1);
+    setTitle2("");
+    setAuthor(sharedData.authorName);
+    setBookListText(bookList);
+    setIntroductionText(firstBookIntro);
+    setChapterKeywords(sharedData.chapterKeywords || "chapter, lesson");
+    setGenresText(sharedData.genresText || "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks");
+    setCustomBlockPhrases(sharedData.customBlockPhrases || "");
+    setSplitterInput("");
+    setReconcilerRawText("");
+    setReconcilerWarehouseText("");
+    setIsSettingsOpen(true);
+    setIsBookListOpen(true);
+    setIsPromptOpen(true);
+    setDetectedChapters([]);
+    setBookIntroMap(sharedData.bookIntroMap || {});
+    setBookContentMap({});
+    setActiveTab("formatter");
+
+    if (editor) {
+      editor.commands.setContent("");
+    }
+    if (authorEditor) {
+      authorEditor.commands.setContent("");
+    }
+
+    setActiveTabId(newId);
+
+    setTimeout(() => {
+      isSwitchingTabRef.current = false;
+    }, 100);
+  };
+
   return {
     isMounted,
     isExporting,
@@ -1069,5 +1186,6 @@ export const useBookState = () => {
     bookContentMap,
     setBookContentMap,
     selectBook,
+    importSharedAuthor,
   };
 };
