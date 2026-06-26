@@ -123,7 +123,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Chưa đăng nhập hoặc phiên làm việc hết hạn" }, { status: 401 });
     }
 
-    const { shareId } = await req.json();
+    const { shareId, status } = await req.json();
     if (!shareId) {
       return NextResponse.json({ error: "Thiếu ID bản ghi chia sẻ" }, { status: 400 });
     }
@@ -135,7 +135,21 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Bản ghi chia sẻ không tồn tại hoặc đã bị xóa" }, { status: 404 });
     }
 
+    const share = snapshot.val();
     await shareRef.remove();
+
+    // Send a status notification back to the sender if they shared it
+    if (share.sender && (status === "accept" || status === "decline")) {
+      const notificationRef = adminDb.ref(`boofor/notifications/${share.sender}`);
+      const newNotifRef = notificationRef.push();
+      await newNotifRef.set({
+        id: newNotifRef.key,
+        type: status,
+        recipient: username,
+        authorName: share.authorName,
+        createdAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
