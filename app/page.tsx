@@ -19,6 +19,7 @@ export default function Home() {
   const { user, isLoading, logout, theme, toggleTheme } = useAuth();
   const [activeMainTab, setActiveMainTab] = useState<"book" | "manage-roles">("book");
   const [sharedAuthors, setSharedAuthors] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [authorToShare, setAuthorToShare] = useState<any>(null);
@@ -41,13 +42,34 @@ export default function Home() {
     }
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch("/api/notifications", { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }, []);
+
   useEffect(() => {
     if (user) {
       fetchSharedAuthors();
-      const interval = setInterval(fetchSharedAuthors, 30000);
+      fetchNotifications();
+      const interval = setInterval(() => {
+        fetchSharedAuthors();
+        fetchNotifications();
+      }, 30000);
       return () => clearInterval(interval);
     }
-  }, [user, fetchSharedAuthors]);
+  }, [user, fetchSharedAuthors, fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -83,10 +105,11 @@ export default function Home() {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ shareId: share.id }),
+        body: JSON.stringify({ shareId: share.id, status: "accept" }),
       });
 
       fetchSharedAuthors();
+      fetchNotifications();
       setIsInboxOpen(false);
       alert(`Đã nhận thành công tác giả "${share.authorName}" vào Workspace của bạn.`);
     } catch (err) {
@@ -107,13 +130,32 @@ export default function Home() {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ shareId: share.id }),
+        body: JSON.stringify({ shareId: share.id, status: "decline" }),
       });
 
       fetchSharedAuthors();
+      fetchNotifications();
     } catch (err) {
       console.error("Decline error:", err);
       alert("Đã xảy ra lỗi khi từ chối chia sẻ.");
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ notificationId }),
+      });
+
+      fetchNotifications();
+    } catch (err) {
+      console.error("Delete notification error:", err);
     }
   };
 
@@ -215,52 +257,96 @@ export default function Home() {
                 title="Tác giả được chia sẻ"
               >
                 <Bell className="w-4 h-4" />
-                {sharedAuthors.length > 0 && (
+                {(sharedAuthors.length + notifications.length) > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                    {sharedAuthors.length}
+                    {sharedAuthors.length + notifications.length}
                   </span>
                 )}
               </button>
 
               {isInboxOpen && (
-                <div className="absolute right-0 mt-2 z-50 w-72 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xl py-3 animate-fadeIn text-gray-900 dark:text-slate-100">
+                <div className="absolute right-0 mt-2 z-50 w-80 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xl py-3 animate-fadeIn text-gray-900 dark:text-slate-100">
                   <div className="px-4 pb-2 border-b border-gray-150 dark:border-slate-800 flex items-center gap-2">
                     <Inbox className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-bold">Hộp thư nhận tác giả ({sharedAuthors.length})</span>
+                    <span className="text-xs font-bold">Thông báo hệ thống</span>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
-                    {sharedAuthors.length === 0 ? (
+                  <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
+                    {sharedAuthors.length === 0 && notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-xs text-gray-400 italic">
-                        Không có chia sẻ nào mới
+                        Không có thông báo nào mới
                       </div>
                     ) : (
-                      sharedAuthors.map((share) => (
-                        <div key={share.id} className="p-3 space-y-2">
-                          <div className="text-left">
-                            <span className="text-xs font-bold block truncate" title={share.authorName}>
-                              {share.authorName}
-                            </span>
-                            <span className="text-[10px] text-gray-500 dark:text-slate-400">
-                              Chia sẻ bởi: <strong>{share.sender}</strong>
-                            </span>
+                      <>
+                        {/* Section 1: Shared Authors invitations */}
+                        {sharedAuthors.length > 0 && (
+                          <div className="py-2">
+                            <div className="px-4 py-1 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                              Lời mời nhận tác giả ({sharedAuthors.length})
+                            </div>
+                            {sharedAuthors.map((share) => (
+                              <div key={share.id} className="px-4 py-2 hover:bg-gray-50/30 dark:hover:bg-[#0d1117]/30 transition-colors space-y-1.5">
+                                <div className="text-left">
+                                  <span className="text-xs font-bold block truncate" title={share.authorName}>
+                                    {share.authorName}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 dark:text-slate-400">
+                                    Chia sẻ bởi: <strong>{share.sender}</strong>
+                                  </span>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    onClick={() => handleDeclineShare(share)}
+                                    className="px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors cursor-pointer"
+                                  >
+                                    Từ chối
+                                  </button>
+                                  <button
+                                    onClick={() => handleImportShare(share)}
+                                    className="px-2 py-1 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Check className="w-3 h-3" /> Nhận
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={() => handleDeclineShare(share)}
-                              className="px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors cursor-pointer"
-                            >
-                              Từ chối
-                            </button>
-                            <button
-                              onClick={() => handleImportShare(share)}
-                              className="px-2 py-1 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center gap-1 cursor-pointer"
-                            >
-                              <Check className="w-3 h-3" /> Nhận
-                            </button>
+                        )}
+
+                        {/* Section 2: Feedback response notifications */}
+                        {notifications.length > 0 && (
+                          <div className="py-2">
+                            <div className="px-4 py-1 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                              Phản hồi chia sẻ ({notifications.length})
+                            </div>
+                            {notifications.map((notif) => (
+                              <div key={notif.id} className="px-4 py-2 hover:bg-gray-50/30 dark:hover:bg-[#0d1117]/30 transition-colors flex items-start justify-between gap-2">
+                                <div className="text-left text-[11px] leading-relaxed flex-1">
+                                  <span className="font-semibold text-gray-800 dark:text-slate-200">
+                                    {notif.recipient}
+                                  </span>{" "}
+                                  {notif.type === "accept" ? (
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">đã nhận</span>
+                                  ) : (
+                                    <span className="text-rose-600 dark:text-rose-400 font-medium">đã từ chối</span>
+                                  )}{" "}
+                                  tác giả <span className="font-semibold text-gray-800 dark:text-slate-200">"{notif.authorName}"</span>.
+                                  <span className="block text-[9px] text-gray-450 dark:text-slate-500 mt-0.5">
+                                    {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(notif.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteNotification(notif.id)}
+                                  className="p-1 text-gray-400 hover:text-red-500 rounded-md transition-colors cursor-pointer flex-shrink-0"
+                                  title="Xóa thông báo"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

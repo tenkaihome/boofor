@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus, X, User, Share2 } from "lucide-react";
 import { AuthorTab } from "@/hooks/useBookState";
 
@@ -26,6 +26,18 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  const activeTabRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeTabId]);
+
   const handleStartRename = (id: string, currentName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(id);
@@ -52,6 +64,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
           return (
             <div
               key={tab.id}
+              ref={isTabActive ? activeTabRef : null}
               onClick={() => onSelectTab(tab.id)}
               onDoubleClick={(e) => handleStartRename(tab.id, displayName, e)}
               className={`group relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 cursor-pointer select-none border-t border-x ${
@@ -83,7 +96,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className="truncate flex-grow text-left pr-4" title={displayName}>
+                <span className={`truncate flex-grow text-left ${isTabActive ? (tabs.length > 1 ? "pr-10" : "pr-6") : "pr-4"}`} title={displayName}>
                   {displayName}
                 </span>
               )}
@@ -95,7 +108,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
                     e.stopPropagation();
                     onShareTab(tab);
                   }}
-                  className={`absolute ${tabs.length > 1 ? "right-6" : "right-2"} p-0.5 rounded-full hover:bg-gray-250 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100 text-gray-400`}
+                  className={`absolute ${tabs.length > 1 ? "right-6" : "right-2"} p-0.5 rounded-full hover:bg-gray-250 hover:text-indigo-600 transition-colors opacity-60 hover:opacity-100 text-gray-500 dark:text-slate-400`}
                   title="Chia sẻ tác giả này"
                 >
                   <Share2 className="w-3 h-3" />
