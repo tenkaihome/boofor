@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, X, User } from "lucide-react";
+import { Plus, X, User, Share2 } from "lucide-react";
 import { AuthorTab } from "@/hooks/useBookState";
 
 interface AuthorTabsProps {
@@ -10,6 +10,7 @@ interface AuthorTabsProps {
   onAddTab: () => void;
   onDeleteTab: (id: string, e: React.MouseEvent) => void;
   onRenameTab: (id: string, newName: string) => void;
+  onShareTab: (tab: AuthorTab) => void;
 }
 
 export const AuthorTabs: React.FC<AuthorTabsProps> = ({
@@ -20,6 +21,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
   onAddTab,
   onDeleteTab,
   onRenameTab,
+  onShareTab,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -84,6 +86,20 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
                 <span className="truncate flex-grow text-left pr-4" title={displayName}>
                   {displayName}
                 </span>
+              )}
+
+              {/* Share Button */}
+              {isTabActive && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShareTab(tab);
+                  }}
+                  className={`absolute ${tabs.length > 1 ? "right-6" : "right-2"} p-0.5 rounded-full hover:bg-gray-250 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100 text-gray-400`}
+                  title="Chia sẻ tác giả này"
+                >
+                  <Share2 className="w-3 h-3" />
+                </button>
               )}
 
               {/* Delete Button */}
