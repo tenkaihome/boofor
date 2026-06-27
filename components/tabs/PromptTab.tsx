@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Wand2, BookOpen, Check, Copy, ChevronDown, Image as ImageIcon } from "lucide-react";
 
 interface Book {
@@ -32,6 +32,7 @@ interface PromptTabProps {
   selectBook: (title1: string, title2: string) => void;
   isPromptOpen: boolean;
   setIsPromptOpen: (val: boolean) => void;
+  currentUsername: string;
 }
 
 export const PromptTab: React.FC<PromptTabProps> = ({
@@ -56,8 +57,26 @@ export const PromptTab: React.FC<PromptTabProps> = ({
   selectBook,
   isPromptOpen,
   setIsPromptOpen,
+  currentUsername,
 }) => {
-  const [isCoverOpen, setIsCoverOpen] = useState(true);
+  const [isCoverOpen, setIsCoverOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && currentUsername) {
+      const saved = localStorage.getItem(`boofor_is_cover_open_${currentUsername}`);
+      if (saved !== null) {
+        setIsCoverOpen(saved !== "false");
+      }
+    }
+  }, [currentUsername]);
+
+  const handleToggleCover = () => {
+    const nextState = !isCoverOpen;
+    setIsCoverOpen(nextState);
+    if (typeof window !== "undefined" && currentUsername) {
+      localStorage.setItem(`boofor_is_cover_open_${currentUsername}`, String(nextState));
+    }
+  };
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
   const currentAuthorName = author || "Chưa có tác giả";
 
@@ -233,7 +252,7 @@ export const PromptTab: React.FC<PromptTabProps> = ({
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
           <button
-            onClick={() => setIsCoverOpen(!isCoverOpen)}
+            onClick={handleToggleCover}
             className="flex items-center justify-between w-full cursor-pointer"
           >
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">

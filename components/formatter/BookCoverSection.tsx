@@ -17,6 +17,7 @@ interface BookCoverSectionProps {
   saveBookCover: (bookTitle: string, base64Data: string) => void;
   deleteBookCover: (bookTitle: string) => void;
   parsedBooks: Array<{ title1: string; title2: string; full: string }>;
+  sentShares?: any[];
 }
 
 export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
@@ -34,6 +35,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   saveBookCover,
   deleteBookCover,
   parsedBooks,
+  sentShares,
 }) => {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
@@ -203,6 +205,38 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             )}
           </button>
         </div>
+        {author && sentShares && (() => {
+          const authorShares = sentShares.filter(
+            (s) => s.authorName && s.authorName.toLowerCase() === author.toLowerCase()
+          );
+          if (authorShares.length === 0) return null;
+          return (
+            <div className="text-[11px] text-gray-500 mt-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 px-3 py-2 rounded-lg border border-indigo-100/30 flex flex-wrap items-center gap-1.5">
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">Đã chia sẻ cho:</span>
+              {authorShares.map((s, idx) => {
+                const statusColor =
+                  s.status === "accepted"
+                    ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                    : s.status === "declined"
+                    ? "text-rose-600 dark:text-rose-450 line-through font-medium"
+                    : "text-amber-600 dark:text-amber-400 font-medium";
+                const statusText =
+                  s.status === "accepted"
+                    ? "đã nhận"
+                    : s.status === "declined"
+                    ? "từ chối"
+                    : "chờ nhận";
+                return (
+                  <span key={s.id} className="inline-flex items-center gap-1">
+                    <span className="text-gray-700 dark:text-slate-200">{s.recipient}</span>
+                    <span className={`text-[10px] ${statusColor}`}>({statusText})</span>
+                    {idx < authorShares.length - 1 && <span className="text-gray-300 dark:text-slate-600">•</span>}
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Author Info inner block */}

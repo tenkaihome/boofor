@@ -20,6 +20,7 @@ export default function Home() {
   const [activeMainTab, setActiveMainTab] = useState<"book" | "manage-roles">("book");
   const [sharedAuthors, setSharedAuthors] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [sentShares, setSentShares] = useState<any[]>([]);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [authorToShare, setAuthorToShare] = useState<any>(null);
@@ -36,6 +37,7 @@ export default function Home() {
       if (res.ok) {
         const data = await res.json();
         setSharedAuthors(data.shares || []);
+        setSentShares(data.sentShares || []);
       }
     } catch (error) {
       console.error("Failed to fetch shared authors:", error);
@@ -384,6 +386,7 @@ export default function Home() {
               onDeleteTab={state.deleteTab}
               onRenameTab={state.renameTab}
               onShareTab={handleOpenShareModal}
+              sentShares={sentShares}
             />
 
             {/* Tab Navigation */}
@@ -433,6 +436,7 @@ export default function Home() {
             {/* Tab content rendering */}
             {state.activeTab === "formatter" && (
               <FormatterTab
+                sentShares={sentShares}
                 editor={state.editor}
                 isFormatting={state.isFormatting}
                 isExporting={state.isExporting}
@@ -508,6 +512,7 @@ export default function Home() {
                 selectBook={state.selectBook}
                 isPromptOpen={state.isPromptOpen}
                 setIsPromptOpen={state.setIsPromptOpen}
+                currentUsername={user?.username || ""}
               />
             )}
 

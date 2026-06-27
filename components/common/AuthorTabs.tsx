@@ -11,6 +11,7 @@ interface AuthorTabsProps {
   onDeleteTab: (id: string, e: React.MouseEvent) => void;
   onRenameTab: (id: string, newName: string) => void;
   onShareTab: (tab: AuthorTab) => void;
+  sentShares?: any[];
 }
 
 export const AuthorTabs: React.FC<AuthorTabsProps> = ({
@@ -22,6 +23,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
   onDeleteTab,
   onRenameTab,
   onShareTab,
+  sentShares,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -61,6 +63,11 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
             ? activeAuthor || "Tác giả mới"
             : tab.author || "Tác giả mới";
 
+          const isDefaultAuthor = !displayName || displayName === "Tác giả mới";
+          const tabShares = isDefaultAuthor || !sentShares ? [] : sentShares.filter(
+            (s: any) => s.authorName && s.authorName.toLowerCase() === displayName.toLowerCase()
+          );
+
           return (
             <div
               key={tab.id}
@@ -96,9 +103,25 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className={`truncate flex-grow text-left ${isTabActive ? (tabs.length > 1 ? "pr-10" : "pr-6") : "pr-4"}`} title={displayName}>
-                  {displayName}
-                </span>
+                <div className={`flex items-center flex-grow min-w-0 ${isTabActive ? (tabs.length > 1 ? "pr-10" : "pr-6") : "pr-4"}`}>
+                  <span className="truncate flex-grow text-left" title={displayName}>
+                    {displayName}
+                  </span>
+                  {tabShares.length > 0 && (
+                    <span 
+                      className="flex items-center gap-0.5 px-1 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded text-[9px] font-extrabold shrink-0 ml-1"
+                      title={
+                        "Đã chia sẻ cho:\n" + tabShares.map((s: any) => {
+                          const statusText = s.status === "accepted" ? "đã nhận" : s.status === "declined" ? "từ chối" : "chờ nhận";
+                          return `- ${s.recipient} (${statusText})`;
+                        }).join("\n")
+                      }
+                    >
+                      <Share2 className="w-2.5 h-2.5" />
+                      <span>{tabShares.length}</span>
+                    </span>
+                  )}
+                </div>
               )}
 
               {/* Share Button */}

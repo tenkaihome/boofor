@@ -64,9 +64,11 @@ export async function POST(req: Request) {
     // Push share record to recipient's shares node (excluding any covers or base64 images)
     const recipientSharesRef = adminDb.ref(`boofor/shares/${recipientUsername}`);
     const newShareRef = recipientSharesRef.push();
+    const shareId = newShareRef.key;
+    const nowStr = new Date().toISOString();
     
     await newShareRef.set({
-      id: newShareRef.key,
+      id: shareId,
       sender,
       authorName,
       bookListText: bookListText || "",
@@ -74,17 +76,27 @@ export async function POST(req: Request) {
       genresText: genresText || "",
       chapterKeywords: chapterKeywords || "chapter, lesson",
       customBlockPhrases: customBlockPhrases || "",
-      sharedAt: new Date().toISOString(),
+      sharedAt: nowStr,
     });
 
-    return NextResponse.json({ success: true, shareId: newShareRef.key });
+    // Also record it under the sender's sent history node
+    const senderSharesRef = adminDb.ref(`boofor/sent_shares/${sender}/${shareId}`);
+    await senderSharesRef.set({
+      id: shareId,
+      recipient: recipientUsername,
+      authorName,
+      status: "pending",
+      sharedAt: nowStr,
+    });
+
+    return NextResponse.json({ success: true, shareId: shareId });
   } catch (error) {
     console.error("Share Author Error:", error);
     return NextResponse.json({ error: "Có lỗi xảy ra khi chia sẻ tác giả" }, { status: 500 });
   }
 }
 
-// 2. GET: List all pending shares for the authenticated user
+// 2. GET: List all pending shares and sent shares history for the authenticated user
 export async function GET(req: Request) {
   try {
     const username = await getAuthenticatedUser(req);
@@ -105,9 +117,24 @@ export async function GET(req: Request) {
       return new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime();
     });
 
+    // Fetch sent shares history
+    const sentSnapshot = await adminDb.ref(`boofor/sent_shares/${username}`).once("value");
+    const sentData = sentSnapshot.val() || {};
+
+    const sentList = [];
+    for (const key in sentData) {
+      sentList.push(sentData[key]);
+    }
+
+    // Sort by sharedAt (newest first)
+    sentList.sort((a: any, b: any) => {
+      return new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime();
+    });
+
     return NextResponse.json({
       success: true,
       shares: sharesList,
+      sentShares: sentList,
     });
   } catch (error) {
     console.error("Get Shares Error:", error);
@@ -137,6 +164,18 @@ export async function DELETE(req: Request) {
 
     const share = snapshot.val();
     await shareRef.remove();
+
+    // Update status in sender's sent_shares node if it exists
+    if (share.sender) {
+      const sentShareRef = adminDb.ref(`boofor/sent_shares/${share.sender}/${shareId}`);
+      const sentSnapshot = await sentShareRef.once("value");
+      if (sentSnapshot.exists()) {
+        await sentShareRef.update({
+          status: status === "accept" ? "accepted" : status === "decline" ? "declined" : "removed",
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
 
     // Send a status notification back to the sender if they shared it
     if (share.sender && (status === "accept" || status === "decline")) {
