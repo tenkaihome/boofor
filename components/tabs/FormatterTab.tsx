@@ -62,6 +62,7 @@ interface FormatterTabProps {
   batchProgress: string;
   triggerBatchExportEPUB: (selectedTitles: string[]) => Promise<void>;
   reconcilerRawText?: string;
+  sentShares?: any[];
 }
 
 export const FormatterTab: React.FC<FormatterTabProps> = ({
@@ -111,6 +112,7 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
   batchProgress,
   triggerBatchExportEPUB,
   reconcilerRawText,
+  sentShares,
 }) => {
   const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -273,6 +275,7 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
           saveBookCover={saveBookCover}
           deleteBookCover={deleteBookCover}
           parsedBooks={parsedBooks}
+          sentShares={sentShares}
         />
 
         <GenresSection
