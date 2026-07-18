@@ -8,7 +8,7 @@ import { SplitterTab } from "@/components/tabs/SplitterTab";
 import { ReconcilerTab } from "@/components/tabs/ReconcilerTab";
 import { Modal } from "@/components/common/Modal";
 import { AuthorTabs } from "@/components/common/AuthorTabs";
-import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock, Sun, Moon, Bell, Mail, Share2, Inbox, Check, XCircle } from "lucide-react";
+import { FileText, Wand2, TableProperties, BookOpen, ShieldAlert, LogOut, Loader2, Clock, Sun, Moon, Bell, Mail, Share2, Inbox, Check, XCircle, Search, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { ManageRoles } from "@/components/admin/ManageRoles";
@@ -24,6 +24,8 @@ export default function Home() {
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [authorToShare, setAuthorToShare] = useState<any>(null);
+  const [notifSearchQuery, setNotifSearchQuery] = useState("");
+  const [isShareAll, setIsShareAll] = useState(false);
   const inboxRef = useRef<HTMLDivElement>(null);
 
   const fetchSharedAuthors = useCallback(async () => {
@@ -78,6 +80,7 @@ export default function Home() {
       const target = event.target as HTMLElement;
       if (inboxRef.current && !inboxRef.current.contains(target)) {
         setIsInboxOpen(false);
+        setNotifSearchQuery("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -85,7 +88,14 @@ export default function Home() {
   }, []);
 
   const handleOpenShareModal = (tab: any) => {
+    setIsShareAll(false);
     setAuthorToShare(tab);
+    setIsShareModalOpen(true);
+  };
+
+  const handleOpenShareAllModal = () => {
+    setIsShareAll(true);
+    setAuthorToShare(null);
     setIsShareModalOpen(true);
   };
 
@@ -203,6 +213,24 @@ export default function Home() {
     );
   }
 
+  const filteredSharedAuthors = sharedAuthors.filter((share) => {
+    if (!notifSearchQuery) return true;
+    const q = notifSearchQuery.toLowerCase();
+    return (
+      (share.authorName || "").toLowerCase().includes(q) ||
+      (share.sender || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredNotifications = notifications.filter((notif) => {
+    if (!notifSearchQuery) return true;
+    const q = notifSearchQuery.toLowerCase();
+    return (
+      (notif.authorName || "").toLowerCase().includes(q) ||
+      (notif.recipient || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0d1117] p-4 md:p-8 font-sans transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
@@ -254,7 +282,10 @@ export default function Home() {
             {/* Shared Authors Inbox */}
             <div className="relative" ref={inboxRef}>
               <button
-                onClick={() => setIsInboxOpen(!isInboxOpen)}
+                onClick={() => {
+                  setIsInboxOpen(!isInboxOpen);
+                  if (isInboxOpen) setNotifSearchQuery("");
+                }}
                 className="p-2 border border-gray-250 text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1f2937] transition-all cursor-pointer relative flex items-center justify-center"
                 title="Tác giả được chia sẻ"
               >
@@ -273,20 +304,44 @@ export default function Home() {
                     <span className="text-xs font-bold">Thông báo hệ thống</span>
                   </div>
 
+                  {/* Search Input inside notifications */}
+                  {(sharedAuthors.length > 0 || notifications.length > 0) && (
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Tìm tác giả, người gửi/nhận..."
+                          className="w-full pl-8 pr-6 py-1 text-[11px] bg-gray-50 dark:bg-[#0d1117] border border-gray-250 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-slate-100"
+                          value={notifSearchQuery}
+                          onChange={(e) => setNotifSearchQuery(e.target.value)}
+                        />
+                        {notifSearchQuery && (
+                          <button
+                            onClick={() => setNotifSearchQuery("")}
+                            className="absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
-                    {sharedAuthors.length === 0 && notifications.length === 0 ? (
+                    {filteredSharedAuthors.length === 0 && filteredNotifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-xs text-gray-400 italic">
-                        Không có thông báo nào mới
+                        {notifSearchQuery ? "Không tìm thấy kết quả phù hợp" : "Không có thông báo nào mới"}
                       </div>
                     ) : (
                       <>
                         {/* Section 1: Shared Authors invitations */}
-                        {sharedAuthors.length > 0 && (
+                        {filteredSharedAuthors.length > 0 && (
                           <div className="py-2">
                             <div className="px-4 py-1 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-                              Lời mời nhận tác giả ({sharedAuthors.length})
+                              Lời mời nhận tác giả ({filteredSharedAuthors.length})
                             </div>
-                            {sharedAuthors.map((share) => (
+                            {filteredSharedAuthors.map((share) => (
                               <div key={share.id} className="px-4 py-2 hover:bg-gray-50/30 dark:hover:bg-[#0d1117]/30 transition-colors space-y-1.5">
                                 <div className="text-left">
                                   <span className="text-xs font-bold block truncate" title={share.authorName}>
@@ -316,12 +371,12 @@ export default function Home() {
                         )}
 
                         {/* Section 2: Feedback response notifications */}
-                        {notifications.length > 0 && (
+                        {filteredNotifications.length > 0 && (
                           <div className="py-2">
                             <div className="px-4 py-1 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-                              Phản hồi chia sẻ ({notifications.length})
+                              Phản hồi chia sẻ ({filteredNotifications.length})
                             </div>
-                            {notifications.map((notif) => (
+                            {filteredNotifications.map((notif) => (
                               <div key={notif.id} className="px-4 py-2 hover:bg-gray-50/30 dark:hover:bg-[#0d1117]/30 transition-colors flex items-start justify-between gap-2">
                                 <div className="text-left text-[11px] leading-relaxed flex-1">
                                   <span className="font-semibold text-gray-800 dark:text-slate-200">
@@ -386,6 +441,7 @@ export default function Home() {
               onDeleteTab={state.deleteTab}
               onRenameTab={state.renameTab}
               onShareTab={handleOpenShareModal}
+              onShareAll={handleOpenShareAllModal}
               sentShares={sentShares}
             />
 
@@ -559,8 +615,13 @@ export default function Home() {
       {/* Share Modal */}
       <ShareModal
         isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setIsShareAll(false);
+        }}
         authorTab={authorToShare}
+        allTabs={state.tabs}
+        isShareAll={isShareAll}
         currentUsername={user.username}
       />
     </div>

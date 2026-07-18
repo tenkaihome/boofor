@@ -11,6 +11,7 @@ interface AuthorTabsProps {
   onDeleteTab: (id: string, e: React.MouseEvent) => void;
   onRenameTab: (id: string, newName: string) => void;
   onShareTab: (tab: AuthorTab) => void;
+  onShareAll?: () => void;
   sentShares?: any[];
 }
 
@@ -23,6 +24,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
   onDeleteTab,
   onRenameTab,
   onShareTab,
+  onShareAll,
   sentShares,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -163,6 +165,17 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
       >
         <Plus className="w-4 h-4" />
       </button>
+
+      {/* Share All Button */}
+      {onShareAll && (
+        <button
+          onClick={onShareAll}
+          className="flex items-center justify-center p-2 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-indigo-600 hover:scale-105 transition-all duration-200 ml-1 cursor-pointer"
+          title="Chia sẻ tất cả tác giả"
+        >
+          <Share2 className="w-4 h-4 text-indigo-500" />
+        </button>
+      )}
     </div>
   );
 };
