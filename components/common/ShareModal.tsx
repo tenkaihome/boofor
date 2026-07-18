@@ -6,6 +6,8 @@ interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   authorTab: AuthorTab | null;
+  allTabs?: AuthorTab[];
+  isShareAll?: boolean;
   currentUsername: string;
 }
 
@@ -13,6 +15,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
   authorTab,
+  allTabs = [],
+  isShareAll = false,
   currentUsername,
 }) => {
   const [users, setUsers] = useState<string[]>([]);
@@ -59,7 +63,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
   }, [isOpen, currentUsername]);
 
-  if (!isOpen || !authorTab) return null;
+  if (!isOpen || (!authorTab && !isShareAll)) return null;
 
   const filteredUsers = users.filter((u) =>
     u.toLowerCase().includes(searchTerm.toLowerCase())
@@ -71,21 +75,45 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setError(null);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
+      
+      const payload: any = {
+        recipientUsername: selectedUser,
+      };
+
+      if (isShareAll) {
+        const authorsToShare = allTabs.filter(
+          (tab) => tab.author && tab.author.trim() !== "" && tab.author.trim() !== "Tác giả mới"
+        );
+        if (authorsToShare.length === 0) {
+          throw new Error("Không tìm thấy tác giả nào hợp lệ (có tên và không phải 'Tác giả mới') để chia sẻ.");
+        }
+        payload.authors = authorsToShare.map((tab) => ({
+          authorName: tab.author,
+          bookListText: tab.bookListText || "",
+          bookIntroMap: tab.bookIntroMap || {},
+          genresText: tab.genresText || "",
+          chapterKeywords: tab.chapterKeywords || "chapter, lesson",
+          customBlockPhrases: tab.customBlockPhrases || "",
+        }));
+      } else {
+        if (!authorTab) {
+          throw new Error("Không có thông tin tác giả để chia sẻ.");
+        }
+        payload.authorName = authorTab.author || "Tác giả mới";
+        payload.bookListText = authorTab.bookListText || "";
+        payload.bookIntroMap = authorTab.bookIntroMap || {};
+        payload.genresText = authorTab.genresText || "";
+        payload.chapterKeywords = authorTab.chapterKeywords || "";
+        payload.customBlockPhrases = authorTab.customBlockPhrases || "";
+      }
+
       const res = await fetch("/api/shares", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          recipientUsername: selectedUser,
-          authorName: authorTab.author || "Tác giả mới",
-          bookListText: authorTab.bookListText || "",
-          bookIntroMap: authorTab.bookIntroMap || {},
-          genresText: authorTab.genresText || "",
-          chapterKeywords: authorTab.chapterKeywords || "",
-          customBlockPhrases: authorTab.customBlockPhrases || "",
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -117,10 +145,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             </span>
             <div>
               <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">
-                Chia sẻ tác giả
+                {isShareAll ? "Chia sẻ tất cả tác giả" : "Chia sẻ tác giả"}
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-slate-400">
-                Gửi tác giả <strong className="text-gray-800 dark:text-slate-200">{authorTab.author || "Tác giả mới"}</strong> cho tài khoản khác
+                {isShareAll
+                  ? `Gửi tất cả các tác giả của bạn cho tài khoản khác`
+                  : `Gửi tác giả ${authorTab?.author || "Tác giả mới"} cho tài khoản khác`
+                }
               </p>
             </div>
           </div>
@@ -141,7 +172,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 Chia sẻ thành công!
               </h4>
               <p className="text-xs text-gray-500 dark:text-slate-400">
-                Tác giả đã được chia sẻ tới tài khoản <strong>{selectedUser}</strong>
+                {isShareAll
+                  ? `Tất cả tác giả đã được chia sẻ tới tài khoản `
+                  : `Tác giả đã được chia sẻ tới tài khoản `
+                }
+                <strong>{selectedUser}</strong>
               </p>
             </div>
           ) : (

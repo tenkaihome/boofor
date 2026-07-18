@@ -37,18 +37,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chưa đăng nhập hoặc phiên làm việc hết hạn" }, { status: 401 });
     }
 
-    const {
-      recipientUsername,
-      authorName,
-      bookListText,
-      bookIntroMap,
-      genresText,
-      chapterKeywords,
-      customBlockPhrases,
-    } = await req.json();
+    const body = await req.json();
+    const { recipientUsername } = body;
 
-    if (!recipientUsername || !authorName) {
-      return NextResponse.json({ error: "Thiếu thông tin người nhận hoặc tên tác giả" }, { status: 400 });
+    if (!recipientUsername) {
+      return NextResponse.json({ error: "Thiếu thông tin người nhận" }, { status: 400 });
     }
 
     // Verify recipient exists
@@ -61,35 +54,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Không thể tự chia sẻ tác giả cho chính mình" }, { status: 400 });
     }
 
-    // Push share record to recipient's shares node (excluding any covers or base64 images)
+    let authorsToShare: any[] = [];
+    if (body.authors && Array.isArray(body.authors)) {
+      authorsToShare = body.authors;
+    } else {
+      if (!body.authorName) {
+        return NextResponse.json({ error: "Thiếu tên tác giả" }, { status: 400 });
+      }
+      authorsToShare = [{
+        authorName: body.authorName,
+        bookListText: body.bookListText || "",
+        bookIntroMap: body.bookIntroMap || {},
+        genresText: body.genresText || "",
+        chapterKeywords: body.chapterKeywords || "",
+        customBlockPhrases: body.customBlockPhrases || "",
+      }];
+    }
+
+    if (authorsToShare.length === 0) {
+      return NextResponse.json({ error: "Không tìm thấy tác giả nào để chia sẻ" }, { status: 400 });
+    }
+
     const recipientSharesRef = adminDb.ref(`boofor/shares/${recipientUsername}`);
-    const newShareRef = recipientSharesRef.push();
-    const shareId = newShareRef.key;
     const nowStr = new Date().toISOString();
-    
-    await newShareRef.set({
-      id: shareId,
-      sender,
-      authorName,
-      bookListText: bookListText || "",
-      bookIntroMap: bookIntroMap || {},
-      genresText: genresText || "",
-      chapterKeywords: chapterKeywords || "chapter, lesson",
-      customBlockPhrases: customBlockPhrases || "",
-      sharedAt: nowStr,
+
+    const sharePromises = authorsToShare.map(async (author: any) => {
+      const newShareRef = recipientSharesRef.push();
+      const shareId = newShareRef.key;
+      
+      const setSharePromise = newShareRef.set({
+        id: shareId,
+        sender,
+        authorName: author.authorName,
+        bookListText: author.bookListText || "",
+        bookIntroMap: author.bookIntroMap || {},
+        genresText: author.genresText || "",
+        chapterKeywords: author.chapterKeywords || "chapter, lesson",
+        customBlockPhrases: author.customBlockPhrases || "",
+        sharedAt: nowStr,
+      });
+
+      const setSentPromise = adminDb.ref(`boofor/sent_shares/${sender}/${shareId}`).set({
+        id: shareId,
+        recipient: recipientUsername,
+        authorName: author.authorName,
+        status: "pending",
+        sharedAt: nowStr,
+      });
+
+      await Promise.all([setSharePromise, setSentPromise]);
+      return shareId;
     });
 
-    // Also record it under the sender's sent history node
-    const senderSharesRef = adminDb.ref(`boofor/sent_shares/${sender}/${shareId}`);
-    await senderSharesRef.set({
-      id: shareId,
-      recipient: recipientUsername,
-      authorName,
-      status: "pending",
-      sharedAt: nowStr,
-    });
+    const shareIds = await Promise.all(sharePromises);
 
-    return NextResponse.json({ success: true, shareId: shareId });
+    return NextResponse.json({ success: true, shareId: shareIds[0], shareIds });
   } catch (error) {
     console.error("Share Author Error:", error);
     return NextResponse.json({ error: "Có lỗi xảy ra khi chia sẻ tác giả" }, { status: 500 });
