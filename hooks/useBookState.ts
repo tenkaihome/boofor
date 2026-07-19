@@ -304,25 +304,24 @@ export const useBookState = () => {
   // Sync Introduction content based on current Title1
   useEffect(() => {
     if (isMounted) {
-      if (title1) {
-        if (bookIntroMap[title1] !== undefined) {
-          setIntroductionText(bookIntroMap[title1]);
-        } else {
-          // If not in local map, check global map!
-          const authorName = (author || "").trim();
-          const bookName = title1.trim();
-          const key = `${authorName}::${bookName}`;
-          const fallbackKey = `::${bookName}`;
-          const globalIntro = globalBookIntros[key] || globalBookIntros[fallbackKey];
-          if (globalIntro) {
-            setIntroductionText(globalIntro);
-            setBookIntroMap((prev) => ({ ...prev, [title1]: globalIntro }));
-          } else {
-            setIntroductionText("");
-          }
-        }
+      const bookName = (title1 || "").trim();
+      if (bookIntroMap[bookName] !== undefined) {
+        setIntroductionText(bookIntroMap[bookName]);
       } else {
-        setIntroductionText("");
+        // If not in local map, check global map!
+        const authorName = (author || "").trim();
+        const key = `${authorName}::${bookName}`;
+        const fallbackKey = bookName ? `::${bookName}` : "";
+        const globalIntro = (authorName || bookName) 
+          ? (globalBookIntros[key] || (fallbackKey ? globalBookIntros[fallbackKey] : undefined)) 
+          : undefined;
+
+        if (globalIntro) {
+          setIntroductionText(globalIntro);
+          setBookIntroMap((prev) => ({ ...prev, [bookName]: globalIntro }));
+        } else {
+          setIntroductionText("");
+        }
       }
     }
   }, [title1, bookIntroMap, globalBookIntros, author, isMounted]);
@@ -877,12 +876,11 @@ export const useBookState = () => {
       const result = cleanAndFormatHtml(html, chapterKeywords, customBlockPhrases);
 
       setIntroductionText(result.introductionText);
-      if (title1) {
-        setBookIntroMap((prev) => {
-          const newMap = { ...prev, [title1]: result.introductionText };
-          return newMap;
-        });
-      }
+      const activeBookKey = title1 || "";
+      setBookIntroMap((prev) => {
+        const newMap = { ...prev, [activeBookKey]: result.introductionText };
+        return newMap;
+      });
 
       setDetectedChapters(result.detectedChapters);
       editor.commands.setContent(result.cleanedHtml);
