@@ -147,7 +147,23 @@ export async function GET(req: Request) {
 
     const sentList = [];
     for (const key in sentData) {
-      sentList.push(sentData[key]);
+      const item = sentData[key];
+      if (!item.bookListText && item.status === "pending" && item.recipient) {
+        try {
+          const detailSnapshot = await adminDb.ref(`boofor/shares/${item.recipient}/${item.id}`).once("value");
+          if (detailSnapshot.exists()) {
+            const detail = detailSnapshot.val();
+            item.bookListText = detail.bookListText || "";
+            item.bookIntroMap = detail.bookIntroMap || {};
+            item.genresText = detail.genresText || "";
+            item.chapterKeywords = detail.chapterKeywords || "";
+            item.customBlockPhrases = detail.customBlockPhrases || "";
+          }
+        } catch (err) {
+          console.error("Failed to fetch pending share details for fallback:", err);
+        }
+      }
+      sentList.push(item);
     }
 
     // Sort by sharedAt (newest first)
