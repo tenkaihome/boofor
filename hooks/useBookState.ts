@@ -91,6 +91,7 @@ export const useBookState = () => {
   const [bookContentMap, setBookContentMap] = useState<Record<string, string>>({});
 
   const [bookCovers, setBookCovers] = useState<Record<string, string>>({});
+  const [globalBookIntros, setGlobalBookIntros] = useState<Record<string, string>>({});
   const [coverPromptTemplate, setCoverPromptTemplate] = useState("");
   const [coverPromptPlaceholderBook, setCoverPromptPlaceholderBook] = useState("");
   const [promptPlaceholderAuthor, setPromptPlaceholderAuthor] = useState("");
@@ -134,6 +135,11 @@ export const useBookState = () => {
       const savedCovers = await dbGet("bofo_bookCovers");
       if (savedCovers) {
         setBookCovers(savedCovers);
+      }
+
+      const savedGlobalIntros = await dbGet("bofo_globalBookIntros");
+      if (savedGlobalIntros) {
+        setGlobalBookIntros(savedGlobalIntros);
       }
 
       const savedTemplate = localStorage.getItem("bofo_promptTemplate");
@@ -269,16 +275,57 @@ export const useBookState = () => {
     }
   }, [splitterInput, isMounted]);
 
+  // Sync local bookIntroMap changes to globalBookIntros
+  useEffect(() => {
+    if (isMounted && Object.keys(bookIntroMap).length > 0) {
+      setGlobalBookIntros((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        const authorName = (author || "").trim();
+        Object.entries(bookIntroMap).forEach(([bTitle, intro]) => {
+          if (intro) {
+            const bookName = bTitle.trim();
+            const key = `${authorName}::${bookName}`;
+            if (next[key] !== intro) {
+              next[key] = intro;
+              changed = true;
+            }
+          }
+        });
+        if (changed) {
+          dbSet("bofo_globalBookIntros", next);
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [bookIntroMap, author, isMounted]);
+
   // Sync Introduction content based on current Title1
   useEffect(() => {
     if (isMounted) {
-      if (title1 && bookIntroMap[title1] !== undefined) {
-        setIntroductionText(bookIntroMap[title1]);
+      if (title1) {
+        if (bookIntroMap[title1] !== undefined) {
+          setIntroductionText(bookIntroMap[title1]);
+        } else {
+          // If not in local map, check global map!
+          const authorName = (author || "").trim();
+          const bookName = title1.trim();
+          const key = `${authorName}::${bookName}`;
+          const fallbackKey = `::${bookName}`;
+          const globalIntro = globalBookIntros[key] || globalBookIntros[fallbackKey];
+          if (globalIntro) {
+            setIntroductionText(globalIntro);
+            setBookIntroMap((prev) => ({ ...prev, [title1]: globalIntro }));
+          } else {
+            setIntroductionText("");
+          }
+        }
       } else {
         setIntroductionText("");
       }
     }
-  }, [title1, bookIntroMap, isMounted]);
+  }, [title1, bookIntroMap, globalBookIntros, author, isMounted]);
 
   // Handle document scrolling when popup list is open
   useEffect(() => {
