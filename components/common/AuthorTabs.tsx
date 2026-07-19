@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, X, User, Share2 } from "lucide-react";
+import { Plus, X, User, Share2, ListPlus } from "lucide-react";
 import { AuthorTab } from "@/hooks/useBookState";
 
 interface AuthorTabsProps {
@@ -13,6 +13,7 @@ interface AuthorTabsProps {
   onShareTab: (tab: AuthorTab) => void;
   onShareAll?: () => void;
   sentShares?: any[];
+  onBulkAdd?: () => void;
 }
 
 export const AuthorTabs: React.FC<AuthorTabsProps> = ({
@@ -26,6 +27,7 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
   onShareTab,
   onShareAll,
   sentShares,
+  onBulkAdd,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -165,6 +167,17 @@ export const AuthorTabs: React.FC<AuthorTabsProps> = ({
       >
         <Plus className="w-4 h-4" />
       </button>
+
+      {/* Bulk Add Button */}
+      {onBulkAdd && (
+        <button
+          onClick={onBulkAdd}
+          className="flex items-center justify-center p-2 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-indigo-600 hover:scale-105 transition-all duration-200 ml-1 cursor-pointer"
+          title="Nhập tác giả & sách hàng loạt"
+        >
+          <ListPlus className="w-4 h-4" />
+        </button>
+      )}
 
       {/* Share All Button */}
       {onShareAll && (
