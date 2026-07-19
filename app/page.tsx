@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { ManageRoles } from "@/components/admin/ManageRoles";
 import { ShareModal } from "@/components/common/ShareModal";
+import { BulkImportModal } from "@/components/common/BulkImportModal";
 
 export default function Home() {
   const state = useBookState();
@@ -26,6 +27,7 @@ export default function Home() {
   const [authorToShare, setAuthorToShare] = useState<any>(null);
   const [notifSearchQuery, setNotifSearchQuery] = useState("");
   const [isShareAll, setIsShareAll] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const inboxRef = useRef<HTMLDivElement>(null);
 
   const fetchSharedAuthors = useCallback(async () => {
@@ -443,6 +445,7 @@ export default function Home() {
               onShareTab={handleOpenShareModal}
               onShareAll={handleOpenShareAllModal}
               sentShares={sentShares}
+              onBulkAdd={() => setIsBulkImportOpen(true)}
             />
 
             {/* Tab Navigation */}
@@ -623,6 +626,13 @@ export default function Home() {
         allTabs={state.tabs}
         isShareAll={isShareAll}
         currentUsername={user.username}
+      />
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onImport={state.addBatchTabs}
       />
     </div>
   );

@@ -1101,6 +1101,133 @@ export const useBookState = () => {
     }, 100);
   };
 
+  const addBatchTabs = (authors: string[], books: string[], clearExisting: boolean) => {
+    isSwitchingTabRef.current = true;
+
+    const currentEditorContent = editor ? editor.getHTML() : "";
+    const currentAuthorEditorContent = authorEditor ? authorEditor.getHTML() : "";
+
+    const timestamp = Date.now();
+    const newTabs: AuthorTab[] = authors.map((authorName, index) => {
+      const bookTitle = books[index] || "";
+      return {
+        id: `tab_${timestamp}_${index}`,
+        title1: bookTitle,
+        title2: "",
+        author: authorName,
+        bookListText: bookTitle,
+        introductionText: "",
+        chapterKeywords: "chapter, lesson",
+        genresText: "Language Study / English as a Second Language\nLanguage Study / Multi-Language Phrasebooks",
+        customBlockPhrases: "",
+        splitterInput: "",
+        reconcilerRawText: "",
+        reconcilerWarehouseText: "",
+        isSettingsOpen: true,
+        isBookListOpen: true,
+        isPromptOpen: true,
+        detectedChapters: [],
+        editorContent: "",
+        authorEditorContent: "",
+        bookIntroMap: {},
+        bookContentMap: bookTitle ? { [bookTitle]: "" } : {},
+        activeSubTab: "formatter",
+      };
+    });
+
+    if (newTabs.length === 0) {
+      isSwitchingTabRef.current = false;
+      return;
+    }
+
+    setTabs((prevTabs) => {
+      let updated: AuthorTab[];
+      if (clearExisting) {
+        updated = newTabs;
+      } else {
+        const mapped = prevTabs.map((t) => {
+          if (t.id === activeTabId) {
+            return {
+              ...t,
+              title1,
+              title2,
+              author,
+              bookListText,
+              introductionText,
+              chapterKeywords,
+              genresText,
+              customBlockPhrases,
+              splitterInput,
+              reconcilerRawText,
+              reconcilerWarehouseText,
+              isSettingsOpen,
+              isBookListOpen,
+              detectedChapters,
+              bookIntroMap,
+              bookContentMap,
+              activeSubTab: activeTab,
+              editorContent: currentEditorContent,
+              authorEditorContent: currentAuthorEditorContent,
+            };
+          }
+          return t;
+        });
+
+        const isSingleEmptyTab =
+          mapped.length === 1 &&
+          !mapped[0].author &&
+          !mapped[0].bookListText &&
+          !mapped[0].editorContent;
+
+        if (isSingleEmptyTab) {
+          updated = newTabs;
+        } else {
+          updated = [...mapped, ...newTabs];
+        }
+      }
+
+      // Switch to the first newly added tab
+      const firstNewTab = newTabs[0];
+      if (firstNewTab) {
+        setTitle1(firstNewTab.title1);
+        setTitle2(firstNewTab.title2);
+        setAuthor(firstNewTab.author);
+        setBookListText(firstNewTab.bookListText);
+        setIntroductionText("");
+        setChapterKeywords(firstNewTab.chapterKeywords);
+        setGenresText(firstNewTab.genresText);
+        setCustomBlockPhrases("");
+        setSplitterInput("");
+        setReconcilerRawText("");
+        setReconcilerWarehouseText("");
+        setIsSettingsOpen(true);
+        setIsBookListOpen(true);
+        setIsPromptOpen(true);
+        setDetectedChapters([]);
+        setBookIntroMap({});
+        setBookContentMap(firstNewTab.bookContentMap);
+        setActiveTab("formatter");
+
+        if (editor) {
+          editor.commands.setContent("");
+        }
+        if (authorEditor) {
+          authorEditor.commands.setContent("");
+        }
+
+        setTimeout(() => {
+          setActiveTabId(firstNewTab.id);
+        }, 0);
+      }
+
+      return updated;
+    });
+
+    setTimeout(() => {
+      isSwitchingTabRef.current = false;
+    }, 100);
+  };
+
   return {
     isMounted,
     isExporting,
@@ -1187,5 +1314,6 @@ export const useBookState = () => {
     setBookContentMap,
     selectBook,
     importSharedAuthor,
+    addBatchTabs,
   };
 };
