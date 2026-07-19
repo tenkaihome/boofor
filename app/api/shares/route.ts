@@ -100,6 +100,11 @@ export async function POST(req: Request) {
         authorName: author.authorName,
         status: "pending",
         sharedAt: nowStr,
+        bookListText: author.bookListText || "",
+        bookIntroMap: author.bookIntroMap || {},
+        genresText: author.genresText || "",
+        chapterKeywords: author.chapterKeywords || "chapter, lesson",
+        customBlockPhrases: author.customBlockPhrases || "",
       });
 
       await Promise.all([setSharePromise, setSentPromise]);
