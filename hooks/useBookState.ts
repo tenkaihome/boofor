@@ -137,7 +137,17 @@ export const useBookState = () => {
         setBookCovers(savedCovers);
       }
 
-      const savedGlobalIntros = await dbGet("bofo_globalBookIntros");
+      let savedGlobalIntros = await dbGet("bofo_globalBookIntros");
+      if (!savedGlobalIntros) {
+        const lsIntros = localStorage.getItem("bofo_globalBookIntros");
+        if (lsIntros) {
+          try {
+            savedGlobalIntros = JSON.parse(lsIntros);
+          } catch (e) {
+            console.error("Failed to parse globalBookIntros from localStorage", e);
+          }
+        }
+      }
       if (savedGlobalIntros) {
         setGlobalBookIntros(savedGlobalIntros);
       }
@@ -294,6 +304,11 @@ export const useBookState = () => {
         });
         if (changed) {
           dbSet("bofo_globalBookIntros", next);
+          try {
+            localStorage.setItem("bofo_globalBookIntros", JSON.stringify(next));
+          } catch (e) {
+            console.error("Failed to save globalBookIntros to localStorage", e);
+          }
           return next;
         }
         return prev;

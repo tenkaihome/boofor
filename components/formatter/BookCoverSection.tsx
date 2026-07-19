@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EditorContent, Editor } from "@tiptap/react";
-import { Check, Copy, Upload, X, Loader2 } from "lucide-react";
+import { Check, Copy, Upload, X, Loader2, Eye } from "lucide-react";
 
 interface BookCoverSectionProps {
   title1: string;
@@ -18,6 +18,7 @@ interface BookCoverSectionProps {
   deleteBookCover: (bookTitle: string) => void;
   parsedBooks: Array<{ title1: string; title2: string; full: string }>;
   sentShares?: any[];
+  onViewShares?: (authorName: string) => void;
 }
 
 export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
@@ -36,6 +37,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   deleteBookCover,
   parsedBooks,
   sentShares,
+  onViewShares,
 }) => {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
@@ -211,14 +213,25 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
           );
           if (authorShares.length === 0) return null;
           return (
-            <div className="text-[11px] text-gray-500 mt-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 px-3 py-2 rounded-lg border border-indigo-100/30 flex flex-wrap items-center gap-1.5">
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">Đã chia sẻ cho:</span>
+            <div 
+              onClick={() => onViewShares && onViewShares(author)}
+              className={`text-[11px] text-gray-500 mt-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 px-3 py-2 rounded-lg border border-indigo-100/30 flex flex-wrap items-center gap-1.5 ${
+                onViewShares 
+                  ? "hover:bg-indigo-100/50 dark:hover:bg-indigo-950/40 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all cursor-pointer select-none" 
+                  : ""
+              }`}
+              title={onViewShares ? "Nhấp để xem chi tiết nội dung đã chia sẻ" : undefined}
+            >
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <Eye className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+                Đã chia sẻ cho:
+              </span>
               {authorShares.map((s, idx) => {
                 const statusColor =
                   s.status === "accepted"
                     ? "text-emerald-600 dark:text-emerald-400 font-bold"
                     : s.status === "declined"
-                    ? "text-rose-600 dark:text-rose-450 line-through font-medium"
+                    ? "text-rose-600 dark:text-rose-455 line-through font-medium"
                     : "text-amber-600 dark:text-amber-400 font-medium";
                 const statusText =
                   s.status === "accepted"

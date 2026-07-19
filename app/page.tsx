@@ -14,6 +14,7 @@ import { AuthScreen } from "@/components/auth/AuthScreen";
 import { ManageRoles } from "@/components/admin/ManageRoles";
 import { ShareModal } from "@/components/common/ShareModal";
 import { BulkImportModal } from "@/components/common/BulkImportModal";
+import { ViewSharedModal } from "@/components/common/ViewSharedModal";
 
 export default function Home() {
   const state = useBookState();
@@ -28,6 +29,8 @@ export default function Home() {
   const [notifSearchQuery, setNotifSearchQuery] = useState("");
   const [isShareAll, setIsShareAll] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isViewSharedOpen, setIsViewSharedOpen] = useState(false);
+  const [viewSharedAuthorName, setViewSharedAuthorName] = useState("");
   const inboxRef = useRef<HTMLDivElement>(null);
 
   const fetchSharedAuthors = useCallback(async () => {
@@ -99,6 +102,11 @@ export default function Home() {
     setIsShareAll(true);
     setAuthorToShare(null);
     setIsShareModalOpen(true);
+  };
+
+  const handleOpenViewShares = (authorName: string) => {
+    setViewSharedAuthorName(authorName);
+    setIsViewSharedOpen(true);
   };
 
   const handleImportShare = async (share: any) => {
@@ -542,6 +550,7 @@ export default function Home() {
                 batchProgress={state.batchProgress}
                 triggerBatchExportEPUB={state.triggerBatchExportEPUB}
                 reconcilerRawText={state.reconcilerRawText}
+                onViewShares={handleOpenViewShares}
               />
             )}
 
@@ -633,6 +642,19 @@ export default function Home() {
         isOpen={isBulkImportOpen}
         onClose={() => setIsBulkImportOpen(false)}
         onImport={state.addBatchTabs}
+      />
+
+      {/* View Shared Modal */}
+      <ViewSharedModal
+        isOpen={isViewSharedOpen}
+        onClose={() => {
+          setIsViewSharedOpen(false);
+          setViewSharedAuthorName("");
+        }}
+        authorName={viewSharedAuthorName}
+        shares={sentShares.filter(
+          (s) => s.authorName && s.authorName.toLowerCase() === viewSharedAuthorName.toLowerCase()
+        )}
       />
     </div>
   );
