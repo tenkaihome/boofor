@@ -116,9 +116,10 @@ export async function POST(req: Request) {
         // to bypass epub-gen-memory's relative URL download error.
         chapters.unshift({
           title: "Cover",
-          content: `<div style="text-align: center; page-break-after: always; margin: 0; padding: 0; width: 100%; height: 100%;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;"><image width="600" height="800" href="cover.${ext}" /></svg></div>`,
+          content: `<div style="text-align: center; page-break-after: always; margin: 0; padding: 0; width: 100%; height: 100%;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;"><image width="600" height="800" xlink:href="cover.${ext}" href="cover.${ext}" /></svg></div>`,
           excludeFromToc: true,
           beforeToc: true,
+          prependChapterTitles: false,
         });
       }
     }
