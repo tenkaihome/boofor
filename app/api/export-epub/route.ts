@@ -112,14 +112,9 @@ export async function POST(req: Request) {
           }
         }
 
-        // Prepend cover image as a first page inside the EPUB contents flow using SVG
-        // to bypass epub-gen-memory's relative URL download error.
-        chapters.unshift({
-          title: "Cover",
-          content: `<div style="text-align: center; page-break-after: always; margin: 0; padding: 0; width: 100%; height: 100%;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;"><image width="600" height="800" href="cover.${ext}" /></svg></div>`,
-          excludeFromToc: true,
-          beforeToc: true,
-        });
+        // Note: We only register the cover image in the EPUB metadata (content.opf) 
+        // to avoid rendering a blank cover page inside strict EPUB readers.
+        // The reader app will use the coverOption metadata to show the cover in the library.
       }
     }
 

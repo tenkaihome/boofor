@@ -26,6 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isLoading, setIsLoading] = useState(true);
 
+  const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
   // Initialize theme from localStorage as early as possible
   useEffect(() => {
     const savedTheme = localStorage.getItem("boofor_theme") as "light" | "dark" | null;
@@ -51,6 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check current session
   const checkSession = useCallback(async () => {
+    if (isLocal) {
+      setUser({
+        username: "Local Developer",
+        role: "admin",
+        theme: (localStorage.getItem("boofor_theme") as "light" | "dark") || "light",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const storedToken = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
       const headers: Record<string, string> = {};
@@ -79,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, [applyTheme]);
+  }, [applyTheme, isLocal]);
 
   useEffect(() => {
     checkSession();
@@ -143,6 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout action
   const logout = async () => {
     setIsLoading(true);
+    if (isLocal) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
     try {
       const storedToken = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
       const headers: Record<string, string> = {};
@@ -175,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     applyTheme(newTheme);
 
     // If user is logged in, sync with database
-    if (user) {
+    if (user && !isLocal) {
       try {
         const storedToken = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
         await fetch("/api/auth/theme", {
@@ -190,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Failed to update theme in database:", error);
       }
     }
-  }, [theme, user, applyTheme]);
+  }, [theme, user, applyTheme, isLocal]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, theme, login, register, logout, refreshUser, toggleTheme }}>

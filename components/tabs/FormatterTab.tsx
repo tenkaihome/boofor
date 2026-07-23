@@ -6,6 +6,7 @@ import { SettingsSection } from "../formatter/SettingsSection";
 import { BookListSection } from "../formatter/BookListSection";
 import { BookCoverSection } from "../formatter/BookCoverSection";
 import { GenresSection } from "../formatter/GenresSection";
+import { EpubCleanerSection } from "../formatter/EpubCleanerSection";
 import { Copy, X, ChevronDown } from "lucide-react";
 import { parsePlayBooksText } from "@/utils/reconciler";
 
@@ -287,6 +288,8 @@ export const FormatterTab: React.FC<FormatterTabProps> = ({
           copiedId={copiedId}
           handleCopy={handleCopy}
         />
+
+        <EpubCleanerSection />
       </div>
 
       {isMetadataModalOpen && (
