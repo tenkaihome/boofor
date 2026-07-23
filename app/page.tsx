@@ -34,6 +34,8 @@ export default function Home() {
   const inboxRef = useRef<HTMLDivElement>(null);
 
   const fetchSharedAuthors = useCallback(async () => {
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (isLocal) return;
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
       const headers: Record<string, string> = {};
@@ -52,6 +54,8 @@ export default function Home() {
   }, []);
 
   const fetchNotifications = useCallback(async () => {
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (isLocal) return;
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("boofor_session_id") : null;
       const headers: Record<string, string> = {};
