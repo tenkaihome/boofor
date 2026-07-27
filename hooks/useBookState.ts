@@ -37,6 +37,8 @@ export interface AuthorTab {
   bookIntroMap: Record<string, string>;
   bookContentMap: Record<string, string>;
   activeSubTab: "formatter" | "prompt" | "splitter" | "reconciler";
+  assignedCards?: string[];
+  completedCards?: string[];
 }
 
 export interface BatchJob {
@@ -238,6 +240,8 @@ export const useBookState = () => {
           activeSubTab: "formatter",
           reconcilerRawText: "",
           reconcilerWarehouseText: "",
+          assignedCards: [],
+          completedCards: [],
         };
 
         setTabs([initialTab]);
@@ -683,6 +687,8 @@ export const useBookState = () => {
       bookIntroMap: {},
       bookContentMap: {},
       activeSubTab: "formatter",
+      assignedCards: [],
+      completedCards: [],
     };
 
     const currentEditorContent = editor ? editor.getHTML() : "";
