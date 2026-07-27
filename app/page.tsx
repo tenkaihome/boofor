@@ -594,6 +594,10 @@ export default function Home() {
                 setSplitterInput={state.setSplitterInput}
                 copiedId={state.copiedId}
                 handleCopy={state.handleCopy}
+                activeAuthor={state.author}
+                activeTabId={state.activeTabId}
+                tabs={state.tabs}
+                setTabs={state.setTabs}
               />
             )}
 
