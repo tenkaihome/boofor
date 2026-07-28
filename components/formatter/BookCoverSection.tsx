@@ -40,6 +40,65 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   onViewShares,
 }) => {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processAndSaveImageFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+          saveBookCover(title1, compressedBase64);
+        }
+      };
+      img.src = evt.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      processAndSaveImageFile(file);
+    }
+  };
+
   const fullTitle = `${title1}${title2 ? ` ${title2}` : ""}`.replace(/\s+/g, " ").trim();
 
   const handleBulkCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -331,11 +390,20 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full aspect-[5/2] border-2 border-dashed border-gray-250 hover:border-indigo-400 rounded-xl cursor-pointer hover:bg-indigo-50/10 transition-colors py-4">
+              <label 
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`flex flex-col items-center justify-center w-full aspect-[5/2] border-2 border-dashed rounded-xl cursor-pointer transition-colors py-4 ${
+                  isDragging 
+                    ? "border-indigo-500 bg-indigo-50/20 text-indigo-600" 
+                    : "border-gray-250 hover:border-indigo-400 hover:bg-indigo-50/10 text-gray-600"
+                }`}
+              >
                 <div className="flex flex-col items-center justify-center text-center px-4">
                   <Upload className="w-6 h-6 text-gray-400 mb-1" />
                   <span className="text-xs font-semibold text-gray-600">
-                    Tải lên ảnh bìa (JPG, PNG, WEBP)
+                    Kéo thả hoặc Click tải ảnh bìa
                   </span>
                   <span className="text-[10px] text-indigo-500 font-medium mt-0.5 animate-pulse">
                     Tự động tối ưu dung lượng ảnh
@@ -347,44 +415,9 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-
-                    const reader = new FileReader();
-                    reader.onload = (evt) => {
-                      const img = new Image();
-                      img.onload = () => {
-                        const canvas = document.createElement("canvas");
-                        const MAX_WIDTH = 600;
-                        const MAX_HEIGHT = 800;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                          if (width > MAX_WIDTH) {
-                            height = Math.round((height * MAX_WIDTH) / width);
-                            width = MAX_WIDTH;
-                          }
-                        } else {
-                          if (height > MAX_HEIGHT) {
-                            width = Math.round((width * MAX_HEIGHT) / height);
-                            height = MAX_HEIGHT;
-                          }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-
-                        const ctx = canvas.getContext("2d");
-                        if (ctx) {
-                          ctx.drawImage(img, 0, 0, width, height);
-                          // Compress to JPEG with 0.8 quality
-                          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
-                          saveBookCover(title1, compressedBase64);
-                        }
-                      };
-                      img.src = evt.target?.result as string;
-                    };
-                    reader.readAsDataURL(file);
+                    if (file) {
+                      processAndSaveImageFile(file);
+                    }
                   }}
                 />
               </label>
