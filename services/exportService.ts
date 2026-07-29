@@ -165,6 +165,7 @@ export const exportToEPUB = async (
     console.error("Failed to copy title to clipboard:", err);
   }
 
-  saveAs(blob, `${fullTitle}.epub`);
+  const fileName = author ? `${fullTitle}-${author}.epub` : `${fullTitle}.epub`;
+  saveAs(blob, fileName);
 };
 
