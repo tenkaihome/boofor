@@ -276,18 +276,7 @@ export const useBookState = () => {
     initData();
   }, []);
 
-  // Sync splitterInput to author if index 9 contains a value
-  useEffect(() => {
-    if (isMounted && splitterInput) {
-      const rows = splitterInput.split("\n").map(r => r.trim()).filter(r => r);
-      const activeRow = rows[0] || "";
-      const columns = activeRow ? activeRow.split("\t").map(col => col.trim()) : [];
-      const nameVal = columns[9];
-      if (nameVal && nameVal.trim()) {
-        setAuthor(nameVal.trim());
-      }
-    }
-  }, [splitterInput, isMounted]);
+
 
   // Sync local bookIntroMap changes to globalBookIntros
   useEffect(() => {

@@ -598,6 +598,7 @@ export default function Home() {
                 activeTabId={state.activeTabId}
                 tabs={state.tabs}
                 setTabs={state.setTabs}
+                setAuthor={state.setAuthor}
               />
             )}
 
