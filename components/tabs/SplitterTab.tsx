@@ -12,6 +12,7 @@ interface SplitterTabProps {
   activeTabId: string;
   tabs: any[];
   setTabs: React.Dispatch<React.SetStateAction<any[]>>;
+  setAuthor: (val: string) => void;
 }
 
 export interface FieldConfig {
@@ -274,7 +275,8 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
   activeAuthor,
   activeTabId,
   tabs,
-  setTabs
+  setTabs,
+  setAuthor
 }) => {
   const { user } = useAuth();
 
@@ -469,6 +471,30 @@ export const SplitterTab: React.FC<SplitterTabProps> = ({
   const rows = splitterInput.split("\n").map(r => r.trim()).filter(r => r);
   const activeRow = rows[0] || "";
   const columns = activeRow ? activeRow.split("\t").map(col => col.trim()) : [];
+
+  // Automatically sync author name from splitterInput using active format fields config
+  useEffect(() => {
+    if (splitterInput && setAuthor) {
+      const rowsList = splitterInput.split("\n").map(r => r.trim()).filter(r => r);
+      const firstRow = rowsList[0] || "";
+      const cols = firstRow ? firstRow.split("\t").map(col => col.trim()) : [];
+      
+      const fields = activeFormat.fields;
+      const nameField = fields.find((f: any) => f.label.toUpperCase() === "NAME") 
+        || fields.find((f: any) => {
+             const lbl = f.label.toUpperCase();
+             return lbl === "HỌ TÊN" || lbl === "TÊN" || lbl === "NAME ADD";
+           })
+        || fields.find((f: any) => f.label.toUpperCase().includes("NAME"));
+        
+      if (nameField && cols[nameField.colIndex]) {
+        const val = cols[nameField.colIndex].trim();
+        if (val && val !== activeAuthor) {
+          setAuthor(val);
+        }
+      }
+    }
+  }, [splitterInput, selectedFormatId, sheetFormats, setAuthor, activeAuthor, activeFormat]);
 
   const visibleConfigs = activeFormat.fields.filter(config => {
     const rawValue = columns[config.colIndex] || "";
